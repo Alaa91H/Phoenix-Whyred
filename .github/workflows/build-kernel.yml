@@ -169,7 +169,7 @@ jobs:
 
       - name: Release
         if: success() && (github.ref_type == 'tag' || steps.opts.outputs.create_release == 'true')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('ci-{0}', github.run_number) }}
           name: Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI #{0}', github.run_number) }}
