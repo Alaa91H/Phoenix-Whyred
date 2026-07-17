@@ -1,0 +1,3 @@
+config WHYRED_WLAN
+	tristate "Whyred WLAN board data glue"
+	depends on CFG80211

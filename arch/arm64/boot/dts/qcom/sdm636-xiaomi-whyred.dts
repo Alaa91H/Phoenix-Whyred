@@ -1,0 +1,269 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Device Tree for Xiaomi Redmi Note 5 / Note 5 Pro (whyred)
+ * SoC: Qualcomm Snapdragon 636 (SDM636)
+ *
+ * Hybrid Kernel 6.18 LTS target.
+ *
+ * Base: mainline SDM660 board pattern (sdm660-xiaomi-lavender.dts)
+ * Stock alignment: LineageOS android_kernel_xiaomi_sdm660 lineage-20
+ *   vendor/qcom/sdm636-mtp-whyred.dts + longcheer/whyred + novatek i2c_d2s
+ *
+ * Gradual bring-up: UART → MMC → USB → display → touch
+ *   docs/BRINGUP.md · docs/STOCK_DTB.md
+ */
+
+/dts-v1/;
+
+#include "sdm636.dtsi"
+#include "pm660.dtsi"
+#include "pm660l.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
+#include <dt-bindings/whyred/whyred.h>
+#include <dt-bindings/whyred/bringup.h>
+
+#include "sdm636-xiaomi-whyred-pmic.dtsi"
+#include "sdm636-xiaomi-whyred-pinctrl.dtsi"
+#include "sdm636-xiaomi-whyred-reserved.dtsi"
+
+/ {
+	model = "Xiaomi Redmi Note 5 Pro";
+	compatible = "xiaomi,whyred", "qcom,sdm636", "qcom,sdm660";
+	chassis-type = "handset";
+
+	/* Stock: sdm636.dtsi msm-id; sdm636-mtp-whyred board/pmic ids */
+	qcom,msm-id = <WHYRED_MSM_ID 0x0>;
+	qcom,board-id = <WHYRED_BOARD_ID_0 0>, <WHYRED_BOARD_ID_1 0>;
+	qcom,pmic-id = <0x0001001b 0x0101011a 0x0 0x0>,
+		       <0x0001001b 0x0201011a 0x0 0x0>,
+		       <0x0001001b 0x0102001a 0x0 0x0>;
+
+	aliases {
+		serial0 = &blsp1_uart2;
+		mmc0 = &sdhc_1;
+		mmc1 = &sdhc_2;
+	};
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/*
+		 * Stage 1: serial console.
+		 * mainline blsp1_uart2 = uartdm @ 0x0c170000
+		 */
+		stdout-path = "serial0:115200n8";
+		bootargs = "earlycon=msm_serial_dm,0x0c170000 console=ttyMSM0,115200n8 androidboot.hardware=qcom";
+
+		/*
+		 * Stage 4: simple-fb over bootloader cont_splash.
+		 * Phys base/size match stock splash_region@9d400000.
+		 */
+		framebuffer0: framebuffer@9d400000 {
+			compatible = "simple-framebuffer";
+			reg = <0x0 WHYRED_FB_PHYS_BASE 0x0 (WHYRED_PANEL_WIDTH * WHYRED_PANEL_HEIGHT * 4)>;
+			width = <WHYRED_PANEL_WIDTH>;
+			height = <WHYRED_PANEL_HEIGHT>;
+			stride = <(WHYRED_PANEL_WIDTH * 4)>;
+			format = "a8r8g8b8";
+			status = "okay";
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		label = "whyred-gpio-keys";
+		autorepeat;
+
+		key-volup {
+			label = "Volume Up";
+			gpios = <&pm660l_gpios WHYRED_PM660L_GPIO_VOL_UP GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+			debounce-interval = <15>;
+			wakeup-source;
+		};
+	};
+
+	/*
+	 * Stage 3: USB ID extcon (lavender pattern).
+	 * Stock whyred often uses pm660_charger as extcon + micro-USB;
+	 * keep GPIO ID as fallback until charger extcon is wired.
+	 */
+	extcon_usb: extcon-usb {
+		compatible = "linux,extcon-usb-gpio";
+		id-gpios = <&tlmm WHYRED_GPIO_USB_ID GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb_id_default>;
+	};
+
+	vddio_ts: vddio-ts-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vddio_ts";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&vreg_l11a_1p8>;
+		regulator-always-on;
+	};
+
+	whyred_bringup {
+		compatible = "xiaomi,whyred-bringup";
+		xiaomi,bringup-stage = <WHYRED_BRINGUP_STAGE>;
+		status = "okay";
+	};
+};
+
+/* ===================== Stage 1: UART ===================== */
+/* status controlled by bringup.dtsi (WHYRED_BRINGUP_HAS_UART) */
+
+&blsp1_uart2 {
+};
+
+/* ===================== Keys ===================== */
+
+&pon_pwrkey {
+	status = "okay";
+};
+
+&pon_resin {
+	status = "okay";
+	linux,code = <KEY_VOLUMEDOWN>;
+};
+
+/* ===================== Stage 3: USB ===================== */
+/* status controlled by bringup.dtsi (WHYRED_BRINGUP_HAS_USB) */
+
+&qusb2phy0 {
+	vdd-supply = <&vreg_l1b_0p925>;
+	vdda-pll-supply = <&vreg_l10a_1p8>;
+	vdda-phy-dpdm-supply = <&vreg_l7b_3p125>;
+};
+
+&usb3 {
+	qcom,select-utmi-as-pipe-clk;
+};
+
+&usb3_dwc3 {
+	maximum-speed = "high-speed";
+	phys = <&qusb2phy0>;
+	phy-names = "usb2-phy";
+	dr_mode = "peripheral";
+	extcon = <&extcon_usb>;
+};
+
+/* ===================== Stage 2: Storage ===================== */
+/* status controlled by bringup.dtsi (WHYRED_BRINGUP_HAS_MMC) */
+
+&sdhc_1 {
+	supports-cqe;
+	mmc-hs200-1_8v;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
+	vmmc-supply = <&vreg_l4b_2p95>;
+	vqmmc-supply = <&vreg_l8a_1p8>;
+};
+
+&sdhc_2 {
+	cd-gpios = <&tlmm WHYRED_GPIO_SD_CD GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sd_cd_default>;
+	vmmc-supply = <&vreg_l5b_2p95>;
+	vqmmc-supply = <&vreg_l2b_2p95>;
+};
+
+/* ===================== Stage 4: WLED ===================== */
+/* status controlled by bringup.dtsi (WHYRED_BRINGUP_HAS_DISPLAY) */
+
+&pm660l_wled {
+	qcom,switching-freq = <800>;
+	qcom,current-limit-microamp = <20000>;
+	qcom,num-strings = <2>;
+};
+
+/* ===================== Stage 5: Touch (stock i2c_1 → blsp_i2c1) ===================== */
+/* status controlled by bringup.dtsi (WHYRED_BRINGUP_HAS_TOUCH) */
+
+/*
+ * Stock: &i2c_1 { novatek@62 }  — BLSP1 QUP1 @ 0x0c175000
+ * Mainline label: blsp_i2c1 (NOT blsp_i2c5 / blsp1_i2c5)
+ */
+&blsp_i2c1 {
+	clock-frequency = <400000>;
+
+	touchscreen@62 {
+		compatible = "novatek,nt36525", "novatek,nvt-ts";
+		reg = <WHYRED_NT36XXX_I2C_ADDR>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <WHYRED_GPIO_TP_INT IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&tlmm WHYRED_GPIO_TP_RESET GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&ts_int_default &ts_reset_default>;
+		pinctrl-1 = <&ts_int_sleep &ts_reset_sleep>;
+		/* stock: vcc_i2c-supply = pm660_l11 */
+		vcc-supply = <&vreg_l11a_1p8>;
+		iovcc-supply = <&vddio_ts>;
+		touchscreen-size-x = <WHYRED_PANEL_WIDTH>;
+		touchscreen-size-y = <WHYRED_PANEL_HEIGHT>;
+		status = "okay";
+	};
+};
+
+/*
+ * Fingerprint: stock longcheer-sdm660-mtp uses platform goodix/fpc
+ * IRQ GPIO 72, reset GPIO 20 — not I2C@0x27 on blsp2.
+ * Keep disabled until dedicated driver wiring.
+ */
+/ {
+	goodix_fp {
+		compatible = "goodix,fingerprint";
+		interrupt-parent = <&tlmm>;
+		interrupts = <WHYRED_GPIO_FP_INT IRQ_TYPE_EDGE_RISING>;
+		reset-gpios = <&tlmm WHYRED_GPIO_FP_RESET GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&fp_int_default &fp_reset_default>;
+		status = "disabled";
+	};
+};
+
+/* ===================== GPU ===================== */
+
+&adreno_gpu {
+	status = "okay";
+};
+
+/* ===================== Board glue ===================== */
+
+whyred_board {
+	compatible = "xiaomi,whyred-board";
+	status = "okay";
+	xiaomi,panel-width = <WHYRED_PANEL_WIDTH>;
+	xiaomi,panel-height = <WHYRED_PANEL_HEIGHT>;
+	xiaomi,codename = "whyred";
+	xiaomi,bringup-stage = <WHYRED_BRINGUP_STAGE>;
+};
+
+whyred_power {
+	compatible = "xiaomi,whyred-power";
+	status = "okay";
+};
+
+whyred_wlan {
+	compatible = "xiaomi,whyred-wlan";
+	status = "disabled";
+};
+
+whyred_audio {
+	compatible = "xiaomi,whyred-audio";
+	status = "disabled";
+};
+
+whyred_camera {
+	compatible = "xiaomi,whyred-camera";
+	status = "disabled";
+};
+
+#include "sdm636-xiaomi-whyred-bringup.dtsi"

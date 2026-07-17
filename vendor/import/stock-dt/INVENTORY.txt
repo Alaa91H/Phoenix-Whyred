@@ -1,0 +1,3 @@
+# stock-dt inventory
+source=vendor/import/stock-dt/boot-global.img
+extracted=2026-07-16T12:22:50Z

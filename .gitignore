@@ -1,0 +1,40 @@
+# Kernel sources (fetched by setup)
+.src/
+.src/**
+
+# Build outputs
+out/
+*.o
+*.ko
+*.mod
+*.mod.c
+*.cmd
+*.a
+*.order
+*.symvers
+*.dtb
+*.dtbo
+Image
+Image.gz
+*.elf
+*.map
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Local overrides
+local.conf
+*.local
+.env
+
+# Packed zips in tree root
+/*.zip

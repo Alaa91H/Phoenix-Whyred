@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-only OR BSD-3-Clause
+/*
+ * Qualcomm SDM636 (Snapdragon 636) SoC differences over SDM660.
+ *
+ * According to downstream DTS, 636 is basically a 660 except for
+ * different CPU peak frequencies, Adreno 509 instead of 512, and
+ * lack of Turing IP.
+ *
+ * Source pattern: sdm660-mainline / upstream linux sdm636.dtsi
+ */
+
+#include "sdm660.dtsi"
+
+&adreno_gpu {
+	compatible = "qcom,adreno-509.0", "qcom,adreno";
+	/* Adreno 509 shares the frequency table with 512 on many trees */
+};

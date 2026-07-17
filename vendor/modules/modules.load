@@ -1,0 +1,25 @@
+# Vendor modules load order for whyred hybrid (example)
+# Lines starting with # are ignored.
+# Adjust names to match actual .ko after build.
+
+# Remoteproc / modem glue
+# qcom_q6v5_mss
+# qcom_sysmon
+
+# WLAN
+# ath10k_core
+# ath10k_snoc
+
+# Audio
+# snd-soc-wcd9335
+# whyred_audio
+
+# Touch / display
+# nt36xxx
+# whyred_panel
+
+# Power
+# whyred_power
+
+# Board
+whyred_board

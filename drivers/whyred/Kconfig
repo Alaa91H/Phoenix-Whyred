@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menuconfig WHYRED_DRIVERS
+	bool "Xiaomi whyred (Redmi Note 5 Pro) device drivers"
+	depends on ARCH_QCOM || COMPILE_TEST
+	default y if ARCH_QCOM
+	help
+	  Board glue and helpers for Xiaomi whyred hybrid kernel.
+	  Prefer mainline drivers via Device Tree when available.
+
+if WHYRED_DRIVERS
+
+config WHYRED_BOARD
+	tristate "Whyred board platform driver"
+	default y
+	help
+	  Sysfs identity and panel geometry from DT (xiaomi,whyred-board).
+
+config WHYRED_DISPLAY
+	tristate "Whyred panel helper"
+	default m
+	help
+	  Panel geometry sysfs helper (1080x2160). Full DSI still needs DRM panel.
+
+config WHYRED_TOUCH
+	tristate "Whyred touchscreen glue"
+	depends on I2C
+	default m
+	help
+	  Optional reset sequencing. Prefer novatek,nvt-ts via DT.
+
+config WHYRED_AUDIO
+	tristate "Whyred audio placeholder"
+	default m
+
+config WHYRED_CAMERA
+	tristate "Whyred camera placeholder"
+	default m
+
+config WHYRED_POWER
+	tristate "Whyred power_supply placeholder"
+	depends on POWER_SUPPLY
+	default m
+	help
+	  Temporary battery psy until SMB/FG drivers work.
+
+config WHYRED_WLAN
+	tristate "Whyred WLAN board hints"
+	default m
+
+endif # WHYRED_DRIVERS

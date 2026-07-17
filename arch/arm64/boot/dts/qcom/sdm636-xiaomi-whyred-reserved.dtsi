@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Board reserved-memory deltas for Xiaomi whyred (SDM636).
+ *
+ * Base regions (modem/adsp/smem/…) already live in mainline sdm630.dtsi.
+ * This file only adds / adjusts board-level splash + ramoops to match stock
+ * LineageOS vendor DT (sdm660.dtsi cont_splash + longcheer ramoops).
+ *
+ * Stock SDM636 also replaces cdsp_fw @ 0x94a00000 with buffer_region 1MB
+ * (see vendor sdm636.dtsi) — mainline sdm636/sdm630 already models buffer_mem.
+ *
+ * Full stock map (reference, do not duplicate if SoC dtsi has them):
+ *   0x85600000  1M   wlan_msa_guard
+ *   0x85700000  1M   wlan_msa_mem
+ *   0x85800000  6–8M hyp/removed
+ *   0x86000000  2M   smem
+ *   0x86200000 ~45–51M tz
+ *   0x8ac00000 126M  modem (mpss)
+ *   0x92a00000  30M  adsp
+ *   0x94800000   2M  mba
+ *   0x94a00000   1M  buffer (636) / 6M cdsp (660)
+ *   0x9d400000 ~36M  cont_splash
+ *   0xa0000000   4M  ramoops (Xiaomi longcheer)
+ */
+
+/ {
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/*
+		 * cont_splash / simple-fb carveout — must match bootloader.
+		 * Stock: splash_region@9d400000 reg size 0x23ff000
+		 */
+		framebuffer_mem: memory@9d400000 {
+			reg = <0x0 0x9d400000 0x0 0x023ff000>;
+			no-map;
+		};
+
+		/* pstore — stock longcheer-sdm660-ramoops.dtsi */
+		ramoops@a0000000 {
+			compatible = "ramoops";
+			reg = <0x0 0xa0000000 0x0 0x00400000>;
+			record-size = <0x20000>;
+			console-size = <0x200000>;
+			ftrace-size = <0x0>;
+			pmsg-size = <0x200000>;
+		};
+	};
+};

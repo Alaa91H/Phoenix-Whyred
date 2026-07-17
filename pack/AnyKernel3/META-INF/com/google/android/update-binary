@@ -1,0 +1,89 @@
+#!/sbin/sh
+# AnyKernel3 RAMDISK Recovery Script
+# osm0sis @ xda-developers
+
+## AnyKernel setup
+# shell variables
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
+
+ui_print() { echo "ui_print $1\nui_print" > "$OUTFD"; }
+set_perm() { chown $1:$2 $4; chmod $3 $4; }
+set_perm_recursive() { for f in $(find $3 -type f); do chown $1:$2 $f; chmod $4 $f; done; for d in $(find $3 -type d); do chown $1:$2 $d; chmod $5 $d; done; }
+
+## AnyKernel install
+# dump boot before patching
+dump_boot() {
+  dd if=/dev/block/bootdevice/by-name/boot of=/tmp/boot.img;
+  mkdir -p /tmp/anykernel;
+  cd /tmp/anykernel;
+  /tmp/magiskboot unpack /tmp/boot.img;
+}
+
+# write patched boot
+write_boot() {
+  cd /tmp/anykernel;
+  /tmp/magiskboot repack /tmp/boot.img /tmp/boot-patched.img;
+  dd if=/tmp/boot-patched.img of=/dev/block/bootdevice/by-name/boot;
+  cd /;
+  rm -rf /tmp/anykernel /tmp/boot.img /tmp/boot-patched.img;
+}
+
+# backup dtb
+backup() {
+  dd if=/dev/block/bootdevice/by-name/dtbo of=/tmp/dtbo.img.bak 2>/dev/null;
+}
+
+# flash dtb (if present)
+flash_dtb() {
+  if [ -f dtbo.img ]; then
+    dd if=dtbo.img of=/dev/block/bootdevice/by-name/dtbo;
+  fi
+}
+
+# init.d / script support
+run_scripts() {
+  for f in /tmp/anykernel/*.sh; do
+    case "$f" in
+      tools/ak3-core.sh|anykernel.sh) continue ;;
+    esac
+    if [ -f "$f" ] && [ -x "$f" ]; then
+      . "$f";
+    fi
+  done
+}
+
+# set permissions
+set_permissions() {
+  set_perm_recursive 0 0 755 644 $RAMDISK/*;
+  set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
+}
+
+# begin
+ui_print "****************************************"
+ui_print "*    Whyred Hybrid Kernel 6.18 LTS     *"
+ui_print "****************************************"
+
+RAMDISK=/tmp/anykernel/ramdisk;
+BLOCK=boot;
+
+# extract
+ui_print "- Extracting kernel image..."
+cd /tmp/anykernel;
+unzip -o "$ZIPFILE" -d /tmp/anykernel;
+
+# dump boot
+ui_print "- Dumping boot partition..."
+backup;
+dump_boot;
+
+# patch ramdisk if needed
+ui_print "- Patching ramdisk..."
+# (no ramdisk changes needed for pure Image flash on whyred)
+
+# rebuild and flash
+ui_print "- Writing boot..."
+write_boot;
+flash_dtb;
+
+ui_print "- Done!"

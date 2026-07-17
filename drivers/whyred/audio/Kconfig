@@ -1,0 +1,3 @@
+config WHYRED_AUDIO
+	tristate "Whyred audio machine driver glue"
+	depends on SND_SOC

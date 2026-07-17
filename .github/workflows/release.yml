@@ -1,0 +1,24 @@
+name: Release
+
+# Tag push vX.Y.Z already triggers build-kernel.yml.
+# This workflow is a convenience re-entry for maintainers.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to rebuild/release (e.g. v0.1.0). Leave empty to build main as full."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-kernel.yml
+    with:
+      kernel_track: "6.18"
+      build_mode: full
+      create_release: "true"
+    secrets: inherit

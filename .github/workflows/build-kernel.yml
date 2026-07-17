@@ -1,0 +1,191 @@
+name: Build Kernel
+
+# Default: Whyred Hybrid 6.18 LTS (android17-6.18)
+# Optional: KERNEL_TRACK=4.19 downstream for ROMs
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_track:
+        description: "Kernel track"
+        required: true
+        default: "6.18"
+        type: choice
+        options:
+          - "6.18"
+          - "4.19"
+      build_mode:
+        description: "Build mode"
+        required: true
+        default: image
+        type: choice
+        options:
+          - image
+          - full
+      kernel_419_branch:
+        description: "4.19 git branch (only if track=4.19)"
+        required: false
+        default: stable-release
+      create_release:
+        description: "Create GitHub Release"
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      kernel_track:
+        type: string
+        default: "6.18"
+      build_mode:
+        type: string
+        default: full
+      create_release:
+        type: string
+        default: "true"
+  push:
+    tags:
+      - "v*"
+  schedule:
+    - cron: "0 3 * * 0"
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  CONTINUE_ON_ERROR: "1"
+
+jobs:
+  build:
+    name: whyred · ${{ inputs.kernel_track || github.event.inputs.kernel_track || '6.18' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev \
+            zip unzip rsync python3 device-tree-compiler \
+            gcc-aarch64-linux-gnu clang lld llvm \
+            libncurses-dev dwarves zstd cpio
+
+      - name: Fix scripts
+        run: |
+          sed -i 's/\r$//' scripts/*.sh PROJECT.conf Makefile || true
+          chmod +x scripts/*.sh
+
+      - name: Resolve options
+        id: opts
+        run: |
+          TRACK="${{ inputs.kernel_track || github.event.inputs.kernel_track || '6.18' }}"
+          MODE="${{ inputs.build_mode || github.event.inputs.build_mode || 'image' }}"
+          BRANCH="${{ github.event.inputs.kernel_419_branch || 'stable-release' }}"
+          CREL="${{ inputs.create_release || github.event.inputs.create_release || 'false' }}"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            MODE=full
+            CREL=true
+            TRACK=6.18
+          fi
+          echo "track=$TRACK" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "create_release=$CREL" >> "$GITHUB_OUTPUT"
+          if [[ "$MODE" == "image" ]]; then
+            echo "skip_modules=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_modules=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup sources
+        env:
+          KERNEL_TRACK: ${{ steps.opts.outputs.track }}
+          KERNEL_419_BRANCH: ${{ steps.opts.outputs.branch }}
+          SKIP_SDM660: "1"
+          FETCH_LTS: "0"
+        run: ./scripts/setup.sh
+
+      - name: Import whyred inventory (4.19 only)
+        if: steps.opts.outputs.track == '4.19'
+        run: ./scripts/import-whyred-419.sh || true
+
+      - name: Apply patches
+        env:
+          KERNEL_TRACK: ${{ steps.opts.outputs.track }}
+        run: ./scripts/apply-patches.sh || true
+
+      - name: Build
+        env:
+          KERNEL_TRACK: ${{ steps.opts.outputs.track }}
+          SKIP_MODULES: ${{ steps.opts.outputs.skip_modules }}
+          CONTINUE_ON_ERROR: "1"
+          JOBS: "4"
+          ARCH: arm64
+          CROSS_COMPILE: aarch64-linux-gnu-
+        run: |
+          if [[ "${{ steps.opts.outputs.mode }}" == "image" ]]; then
+            ./scripts/build.sh image
+          else
+            ./scripts/build.sh whyred
+          fi
+
+      - name: Pack zip
+        if: success()
+        env:
+          KERNEL_TRACK: ${{ steps.opts.outputs.track }}
+          FETCH_ANYKERNEL: "1"
+        run: ./scripts/pack.sh
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whyred-${{ steps.opts.outputs.track }}-${{ github.run_number }}
+          path: |
+            out/dist/*.zip
+            out/dist/Image*
+            out/dist/*.dtb
+            out/dist/dtbo.img
+            out/dist/config
+            out/dist/modules-*.tar.gz
+            out/build-*.log
+            vendor/import/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Release
+        if: success() && (github.ref_type == 'tag' || steps.opts.outputs.create_release == 'true')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('ci-{0}', github.run_number) }}
+          name: Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI #{0}', github.run_number) }}
+          body: |
+            ## Whyred Hybrid Kernel
+            - Track: **${{ steps.opts.outputs.track }}** (6.18 = Hybrid LTS / android17-6.18)
+            - Device: whyred (Redmi Note 5 Pro / SDM636)
+            - Mode: ${{ steps.opts.outputs.mode }}
+            - Commit: `${{ github.sha }}`
+
+            ⚠️ Experimental hybrid bring-up. Backup boot before flash.
+            4.19 builds only for **4.19-based ROMs**.
+          files: |
+            out/dist/*.zip
+            out/dist/Image.gz-dtb
+            out/dist/Image.gz
+            out/dist/Image
+          fail_on_unmatched_files: false
+          generate_release_notes: true

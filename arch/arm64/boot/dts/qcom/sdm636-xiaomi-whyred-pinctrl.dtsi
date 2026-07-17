@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * TLMM pinctrl for Xiaomi whyred.
+ * Pins aligned with stock longcheer-sdm660-pinctrl + novatek d2s + mtp FP.
+ *
+ *   SD_CD=54  USB_ID=58  FP_RESET=20  FP_INT=72  TP_RESET=66  TP_INT=67
+ */
+
+&tlmm {
+	/* Hyp / TZ reserve — verify if boot hangs on GPIO request */
+	gpio-reserved-ranges = <8 4>;
+
+	ts_int_default: ts-int-default-state {
+		pins = "gpio67";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	ts_int_sleep: ts-int-sleep-state {
+		pins = "gpio67";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	/* stock novatek reset: drive-strength 16, pull-up */
+	ts_reset_default: ts-reset-default-state {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
+
+	ts_reset_sleep: ts-reset-sleep-state {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	fp_int_default: fp-int-default-state {
+		pins = "gpio72";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	fp_reset_default: fp-reset-default-state {
+		pins = "gpio20";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	usb_id_default: usb-id-default-state {
+		pins = "gpio58";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	sd_cd_default: sd-cd-default-state {
+		pins = "gpio54";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+};
+
+&sdc2_state_on {
+	sd-cd-pins {
+		pins = "gpio54";
+		function = "gpio";
+		bias-pull-up;
+		drive-strength = <2>;
+	};
+};
+
+&sdc2_state_off {
+	sd-cd-pins {
+		pins = "gpio54";
+		function = "gpio";
+		bias-disable;
+		drive-strength = <2>;
+	};
+};

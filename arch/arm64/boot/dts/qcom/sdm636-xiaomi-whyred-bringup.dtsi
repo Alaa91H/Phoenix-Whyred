@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Stage-gated enablement for whyred gradual bring-up.
+ *
+ * Included last from sdm636-xiaomi-whyred.dts so status overrides win.
+ * Stages: UART(1) → MMC(2) → USB(3) → display(4) → touch(5)
+ *
+ * See include/dt-bindings/whyred/bringup.h and docs/BRINGUP.md
+ */
+
+#include <dt-bindings/whyred/bringup.h>
+
+/* ===================== Stage 1: UART ===================== */
+
+&blsp1_uart2 {
+#if WHYRED_BRINGUP_HAS_UART
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+/* ===================== Stage 2: MMC ===================== */
+
+&sdhc_1 {
+#if WHYRED_BRINGUP_HAS_MMC
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+&sdhc_2 {
+#if WHYRED_BRINGUP_HAS_MMC
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+/* ===================== Stage 3: USB ===================== */
+
+&qusb2phy0 {
+#if WHYRED_BRINGUP_HAS_USB
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+&usb3 {
+#if WHYRED_BRINGUP_HAS_USB
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+/* ===================== Stage 4: display (simple-fb + WLED) ===================== */
+
+&pm660l_wled {
+#if WHYRED_BRINGUP_HAS_DISPLAY
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+/*
+ * simple-framebuffer lives under /chosen — disable via status when
+ * stage < 4 so early bring-up does not map splash if undesired.
+ */
+&framebuffer0 {
+#if WHYRED_BRINGUP_HAS_DISPLAY
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
+
+/* ===================== Stage 5: touch (stock i2c_1 → blsp_i2c1) ===================== */
+
+&blsp_i2c1 {
+#if WHYRED_BRINGUP_HAS_TOUCH
+	status = "okay";
+#else
+	status = "disabled";
+#endif
+};
