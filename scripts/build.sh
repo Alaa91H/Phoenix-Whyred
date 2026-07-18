@@ -208,8 +208,11 @@ build_618() {
   # SHA256SUMS for all artifacts
   (
     cd "${ROOT}/${DIST_DIR}"
-    sha256sum Image* *.dtb 2>/dev/null || true
+    sha256sum Image* 2>/dev/null || true
+    sha256sum *.dtb 2>/dev/null || true
     sha256sum config 2>/dev/null || true
+    [[ -f dtbo.img ]] && sha256sum dtbo.img 2>/dev/null || true
+    [[ -f build-info.txt ]] && sha256sum build-info.txt 2>/dev/null || true
   ) > "${ROOT}/${DIST_DIR}/SHA256SUMS" 2>/dev/null || true
 
   echo "==> Hybrid 6.18 LTS build finished (BRINGUP_STAGE=${BRINGUP_STAGE})"

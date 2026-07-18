@@ -41,19 +41,32 @@ if [[ "${FETCH_ANYKERNEL}" == "1" ]] || ci_is_github; then
 fi
 
 mkdir -p "${AK}"
-# Prefer Image.gz-dtb for 4.19 SDM660
-rm -f "${AK}/Image.gz-dtb" "${AK}/Image.gz" "${AK}/Image"
-for img in Image.gz-dtb Image.gz Image; do
+# Prefer Image.gz-dtb for 4.19 SDM660, Image.gz for 6.18 GKI
+rm -f "${AK}/Image.gz-dtb" "${AK}/Image.gz" "${AK}/Image" "${AK}/dhtb"
+for img in Image.gz Image Image.gz-dtb; do
   if [[ -f "${DIST}/${img}" ]]; then
     cp -a "${DIST}/${img}" "${AK}/"
+    echo "    pack: ${img}"
     break
   fi
 done
 cp -a "${DIST}/"*.dtb "${AK}/" 2>/dev/null || true
 [[ -f "${DIST}/dtbo.img" ]] && cp -a "${DIST}/dtbo.img" "${AK}/"
 
+# Include build provenance in zip
+[[ -f "${DIST}/build-info.txt" ]] && cp -a "${DIST}/build-info.txt" "${AK}/"
+[[ -f "${DIST}/SHA256SUMS" ]] && cp -a "${DIST}/SHA256SUMS" "${AK}/"
+
 if [[ -d "${ROOT}/${MODULES_OUT}/lib/modules" ]]; then
-  tar -C "${ROOT}/${MODULES_OUT}" -czf "${ROOT}/${DIST_DIR}/modules-${STAMP}.tar.gz" lib/modules
+  MOD_TAR="${ROOT}/${DIST_DIR}/modules-${STAMP}.tar.gz"
+  tar -C "${ROOT}/${MODULES_OUT}" -czf "${MOD_TAR}" lib/modules
+  # Include modules in AnyKernel3 zip if any exist
+  MOD_COUNT=$(find "${ROOT}/${MODULES_OUT}/lib/modules" -name '*.ko' 2>/dev/null | wc -l | tr -d ' ')
+  if [[ ${MOD_COUNT} -gt 0 ]]; then
+    echo "    pack: modules (${MOD_COUNT} .ko files)"
+    mkdir -p "${AK}/vendor/lib/modules"
+    find "${ROOT}/${MODULES_OUT}/lib/modules" -name '*.ko' -exec cp -a {} "${AK}/vendor/lib/modules/" \; 2>/dev/null || true
+  fi
 fi
 
 cat > "${AK}/version" <<EOF
@@ -61,6 +74,7 @@ ${PROJECT_NAME} ${PROJECT_VERSION}
 track ${KERNEL_TRACK}
 kernel ${KERNEL_VERSION}
 device ${DEVICE_CODENAME}
+gki_commit ${GKI_COMMIT:-unknown}
 git ${GIT_SHA}
 built $(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF

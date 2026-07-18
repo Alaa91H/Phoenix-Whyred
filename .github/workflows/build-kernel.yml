@@ -174,6 +174,8 @@ jobs:
             out/dist/dtbo.img
             out/dist/config
             out/dist/modules-*.tar.gz
+            out/dist/build-info.txt
+            out/dist/SHA256SUMS
             out/build-*.log
             vendor/import/**
           if-no-files-found: warn
