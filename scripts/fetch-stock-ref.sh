@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BRANCH="${1:-lineage-20}"
 REPO="${STOCK_REF_REPO:-https://raw.githubusercontent.com/LineageOS/android_kernel_xiaomi_sdm660}"
-OUT="${ROOT}/vendor/import/stock-dt/ref-lineage20"
+OUT="${ROOT}/vendor/import/stock-dt/ref-${BRANCH}"
 BASE="${REPO}/${BRANCH}"
 
 mkdir -p "${OUT}"

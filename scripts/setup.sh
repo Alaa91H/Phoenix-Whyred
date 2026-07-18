@@ -138,7 +138,11 @@ case "${KERNEL_TRACK}" in
   4.19|419|downstream)
     setup_419
     ;;
-  6.18|618|gki|hybrid|lts|*)
+  6.18|618|gki|hybrid|lts)
+    setup_618
+    ;;
+  *)
+    echo "WARNING: unknown KERNEL_TRACK=${KERNEL_TRACK}, defaulting to 6.18"
     setup_618
     ;;
 esac

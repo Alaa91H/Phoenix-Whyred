@@ -14,6 +14,8 @@ required=(
   configs/fragments/lts-6.18.config
   configs/fragments/hybrid.config
   configs/fragments/whyred.config
+  configs/fragments/sdm660.config
+  configs/fragments/android-gki.config
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred.dts
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-pmic.dtsi
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-pinctrl.dtsi
@@ -27,6 +29,8 @@ required=(
   scripts/setup.sh
   scripts/build.sh
   scripts/pack.sh
+  scripts/ci-env.sh
+  scripts/apply-patches.sh
   scripts/extract-stock-dtb.sh
   scripts/compare-stock-dt.sh
   pack/AnyKernel3/anykernel.sh
@@ -35,6 +39,9 @@ required=(
   docs/DRIVERS.md
   docs/STOCK_DTB.md
   docs/BRINGUP.md
+  docs/GITHUB_BUILD.md
+  docs/BUILD_AR.md
+  docs/ROADMAP.md
   include/dt-bindings/whyred/bringup.h
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-bringup.dtsi
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-reserved.dtsi
@@ -82,11 +89,10 @@ if command -v gcc >/dev/null 2>&1; then
   for c in drivers/whyred/*.c drivers/whyred/*/*.c; do
     [[ -f "$c" ]] || continue
     # lightweight: ensure file non-empty and has MODULE_LICENSE
-    if ! grep -q 'MODULE_LICENSE' "$c" && [[ "$(basename "$c")" != "whyred_board.c" ]]; then
-      :
-    fi
     if ! grep -q 'MODULE_LICENSE' "$c"; then
-      echo "WARN: no MODULE_LICENSE in $c"
+      if [[ "$(basename "$c")" != "whyred_board.c" ]]; then
+        echo "WARN: no MODULE_LICENSE in $c"
+      fi
     fi
     echo "OK  present $c"
   done

@@ -11,7 +11,7 @@ source "${ROOT}/scripts/ci-env.sh"
 MODE="${1:-whyred}"
 COMMON="${ROOT}/${KERNEL_SRC}"
 # BUILD_DIR from conf is relative "out/build"
-BDIR="${ROOT}/out/build"
+BDIR="${ROOT}/${BUILD_DIR}"
 SKIP_MODULES="${SKIP_MODULES:-0}"
 CONTINUE_ON_ERROR="${CONTINUE_ON_ERROR:-0}"
 # Gradual bring-up: 1=UART … 5=touch (see docs/BRINGUP.md)
@@ -126,7 +126,9 @@ build_618() {
   set -e
   if [[ $rc -ne 0 ]]; then
     echo "Image.gz failed — trying Image..."
+    set +e
     "${MAKE[@]}" Image 2>&1 | tee -a "${ROOT}/${OUT_DIR}/build-image.log"
+    set -e
   fi
 
   if ! collect_images; then

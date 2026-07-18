@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
         with:
           tool-cache: true
           android: true
@@ -126,7 +126,7 @@ jobs:
       - name: Apply patches
         env:
           KERNEL_TRACK: ${{ steps.opts.outputs.track }}
-        run: ./scripts/apply-patches.sh || true
+        run: ./scripts/apply-patches.sh || echo "::warning::Some patches failed to apply"
 
       - name: Build
         env:
