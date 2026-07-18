@@ -1,61 +1,59 @@
-# درايفرات whyred — Hybrid 6.18 LTS
+# Whyred Drivers — Phoenix-Whyred 6.18 LTS
 
-## داخل الشجرة (`drivers/whyred/`)
+## In-tree drivers (`drivers/whyred/`)
 
-| الوحدة | Kconfig | الوظيفة |
+| Module | Kconfig | Purpose |
 |--------|---------|---------|
-| `whyred_board` | `WHYRED_BOARD` | هوية اللوحة + أبعاد الشاشة (platform + sysfs) |
-| `whyred_panel` | `WHYRED_DISPLAY` | مساعد هندسة 1080×2160 |
-| `whyred_touch` | `WHYRED_TOUCH` | نبضة reset / glue (I2C) |
-| `whyred_power` | `WHYRED_POWER` | `power_supply` مؤقت 4000mAh |
-| `whyred_wlan` | `WHYRED_WLAN` | تلميحات firmware ath10k |
-| `whyred_audio` | `WHYRED_AUDIO` | placeholder |
-| `whyred_camera` | `WHYRED_CAMERA` | placeholder |
+| `whyred_board` | `WHYRED_BOARD` | Board identity + panel geometry (platform + sysfs) |
 
-## درايفرات Mainline / GKI المفضّلة (عبر DT)
+**Note:** All other whyred drivers have been removed — they were stubs/placeholders that conflicted with upstream drivers.
 
-| الوظيفة | الدرايفر المقترح |
-|---------|------------------|
-| لمس | `CONFIG_TOUCHSCREEN_NT36XXX` / novatek nvt-ts |
-| شاشة | `CONFIG_DRM_MSM` + panel driver |
-| Wi‑Fi | `CONFIG_ATH10K_SNOC` |
-| شحن | `CONFIG_CHARGER_QCOM_SMB2` / FG |
-| صوت | `CONFIG_SND_SOC_QCOM` + WCD |
-| USB | DWC3 + QUSB2 PHY |
-| تخزين | `CONFIG_MMC_SDHCI_MSM` |
+## Upstream drivers (via DT)
 
-فعّلها عبر `configs/fragments/whyred.config`.
+| Function | Driver | Status |
+|----------|--------|--------|
+| Touch | `CONFIG_TOUCHSCREEN_NT36XXX` / novatek nvt-ts | ✅ Upstream |
+| Display | `CONFIG_DRM_MSM` + simple-framebuffer | ✅ Upstream |
+| WiFi | `CONFIG_ATH10K_SNOC` | ✅ Upstream |
+| Charger | `CONFIG_CHARGER_QCOM_SMB2` / FG | ✅ Upstream |
+| Audio | `CONFIG_SND_SOC_WCD9335` + QCOM machine | ✅ Upstream |
+| USB | DWC3 + QUSB2 PHY | ✅ Upstream |
+| Storage | `CONFIG_MMC_SDHCI_MSM` | ✅ Upstream |
+| Modem | `CONFIG_QCOM_Q6V5_MSS` + remoteproc | ✅ Upstream |
+| PMIC | `CONFIG_MFD_SPMI_PMIC` (PM660/PM660L) | ✅ Upstream |
+| Clocks | `CONFIG_SDM_GCC_660` / GPUCC / VIDEOCC / DISPCC | ✅ Upstream |
+| Pinctrl | `CONFIG_PINCTRL_SDM660` | ✅ Upstream |
+| Interconnect | `CONFIG_INTERCONNECT_QCOM_SDM660` | ✅ Upstream |
 
-## ترتيب bring-up المقترح
+Enable via `configs/fragments/whyred.config`.
 
-راجع الدليل التفصيلي: **[BRINGUP.md](BRINGUP.md)** · مطابقة DT: **[STOCK_DTB.md](STOCK_DTB.md)**
+## Bring-up sequence
 
-1. UART + earlycon + `whyred_board` (`BRINGUP_STAGE=1`)  
-2. eMMC rootfs (`=2`)  
-3. USB gadget / adb (`=3`)  
-4. simple-fb أو DRM (`=4`)  
-5. touch (`=5`)  
-6. WLAN firmware  
-7. audio / camera  
+See detailed guide: **[BRINGUP.md](BRINGUP.md)** · DT audit: **[STOCK_DTB.md](STOCK_DTB.md)**
+
+1. UART + earlycon (`BRINGUP_STAGE=1`)
+2. eMMC rootfs (`=2`)
+3. USB gadget / adb (`=3`)
+4. simple-fb or DRM (`=4`)
+5. touch (`=5`)
+6. WiFi firmware
+7. audio / camera
 
 ```bash
-make bringup1   # … حتى bringup5
+make bringup1   # … through bringup5
 ```
 
+## Building as modules
 
-## البناء كوحدات
-
-بعد `build.sh`:
+After `build.sh`:
 
 ```
 out/modules/lib/modules/*/kernel/drivers/whyred/
   whyred_board.ko
-  display/whyred_panel.ko
-  ...
 ```
 
 ```bash
 insmod whyred_board.ko
-# أو
+# or
 modprobe whyred_board
 ```

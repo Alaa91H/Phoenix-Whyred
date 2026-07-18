@@ -1,13 +1,13 @@
-# Whyred Hybrid Kernel 6.18 LTS
+# Phoenix-Whyred
 
-**Xiaomi Redmi Note 5 Pro (`whyred`)** · **SDM636** · **Linux 6.18 LTS + Android GKI (`android17-6.18`)**
+**Xiaomi Redmi Note 5 Pro (`whyred`)** · **SDM636** · **Linux Mainline 6.18 LTS**
 
 ## Project Status
 
 | Phase | Status |
 |-------|--------|
 | Repository build on CI | **Working** — Image.gz produced |
-| ACK source lock | **Working** — pinned to `3e53bdbe8bc9` |
+| Linux Mainline 6.18 LTS base | **Working** — clones kernel.org v6.18 tag |
 | Build provenance | **Working** — full build-info.txt + SHA256SUMS |
 | Patch safety | **Working** — APPLIED/FAILED tracking |
 | Config validation | **Working** — 30+ critical CONFIGs verified |
@@ -20,20 +20,19 @@
 
 ## What Is This?
 
-A **hybrid** kernel combining:
+A **mainline-first** kernel for whyred:
 
 | Layer | Source | Role |
 |-------|--------|------|
-| **LTS / GKI** | `android17-6.18` (ACK on Linux **6.18 LTS**) | Modern kernel + Android layers |
-| **SoC** | SDM660 fragments + mainline reference | Clocks, pinctrl, QCOM platform |
-| **Device** | DT whyred + `drivers/whyred` | whyred board |
+| **Linux Mainline** | `v6.18` tag (kernel.org) | Modern LTS kernel with SDM660 support |
+| **SoC** | Upstream SDM660 drivers | Clocks, pinctrl, QCOM platform |
+| **Device** | DT whyred + optional `drivers/whyred` | whyred board overlay |
 
-> Detailed guide: **[docs/HYBRID_618_LTS.md](docs/HYBRID_618_LTS.md)**
-> Full audit: **[docs/AUDIT_6.18.md](docs/AUDIT_6.18.md)**
+> Full audit: **[docs/MAINLINE_MIGRATION_AUDIT.md](docs/MAINLINE_MIGRATION_AUDIT.md)**
 
 ---
 
-## بناء الهجين 6.18 LTS
+## بناء Whyred
 
 ### محلي (Linux / WSL2)
 
@@ -42,13 +41,13 @@ cd /path/to/Kernel
 sed -i 's/\r$//' scripts/*.sh PROJECT.conf
 chmod +x scripts/*.sh
 
-./scripts/setup.sh              # يجلب android17-6.18 + يدمج whyred
+./scripts/setup.sh              # يجلب Linux Mainline 6.18 + يدمج whyred
 ./scripts/apply-patches.sh
 ./scripts/build.sh whyred       # أو: ./scripts/build.sh image
 FETCH_ANYKERNEL=1 ./scripts/pack.sh
 ```
 
-الناتج: `out/dist/Whyred-Hybrid-6.18-LTS-*.zip` و `Image.gz`
+الناتج: `out/dist/Phoenix-Whyred-6.18-*.zip` و `Image.gz`
 
 ```bash
 make setup build pack
@@ -63,7 +62,7 @@ make info
 4. حمّل الـ Artifact  
 
 ```bash
-git tag v0.3.0 && git push origin v0.3.0
+git tag v0.4.0 && git push origin v0.4.0
 ```
 
 ---
@@ -72,11 +71,11 @@ git tag v0.3.0 && git push origin v0.3.0
 
 | البند | القيمة |
 |-------|--------|
-| `KERNEL_TRACK` | **`6.18`** (هجين LTS) |
-| فرع GKI | `android17-6.18` |
-| Defconfig | `gki_defconfig` + fragments |
-| Localversion | `-whyred-hybrid-6.18-lts-...` |
-| Zip | `Whyred-Hybrid-6.18-LTS-*.zip` |
+| `KERNEL_TRACK` | **`6.18`** (Linux Mainline LTS) |
+| فرع kernel | `v6.18` (kernel.org tag) |
+| Defconfig | `defconfig` + fragments |
+| Localversion | `-phoenix-whyred-6.18-...` |
+| Zip | `Phoenix-Whyred-6.18-*.zip` |
 
 مسار بديل لـ ROM الحالية (4.19):
 
@@ -90,17 +89,16 @@ export KERNEL_TRACK=4.19
 ## هيكل مهم
 
 ```
-scripts/setup.sh          ← جلب ACK 6.18 LTS + overlay whyred
-scripts/build.sh          ← gki_defconfig + hybrid fragments
+scripts/setup.sh          ← جلب Linux Mainline 6.18 LTS + overlay whyred
+scripts/build.sh          ← defconfig + whyred fragments
 configs/fragments/
-  android-gki.config
-  sdm660.config
-  whyred.config
-  hybrid.config
+  android-gki.config      ← Android binder/cgroups (اختياري)
+  sdm660.config           ← SoC enablement
+  whyred.config           ← device + drivers
   lts-6.18.config         ← هوية 6.18 LTS
 arch/.../sdm636-xiaomi-whyred.dts
-drivers/whyred/           ← glue / stubs للجهاز
-patches/{gki,sdm660,android}/
+drivers/whyred/           ← board glue فقط
+patches/{mainline,sdm660}/
 ```
 
 ---
@@ -128,7 +126,7 @@ make bringup5    # + لمس على blsp_i2c1
 
 ## ملاحظة واقعية
 
-- **6.18 LTS hybrid** = هدف تطوير حديث (GKI + bring-up).  
+- **6.18 LTS mainline** = هدف تطوير رئيسي (Linux Mainline + bring-up).  
 - إقلاع ROM whyred اليوم غالباً يحتاج **4.19** (`KERNEL_TRACK=4.19`).  
 - بعد أول بناء 6.18: **مطابقة stock DTB** ثم **UART → MMC → USB → شاشة → لمس**.
 
@@ -136,4 +134,4 @@ make bringup5    # + لمس على blsp_i2c1
 
 ## ترخيص
 
-نواة Linux / ACK: **GPL-2.0** · سكربتات المشروع: **MIT** (انظر `LICENSE`)
+نواة Linux: **GPL-2.0** · سكربتات المشروع: **MIT** (انظر `LICENSE`)

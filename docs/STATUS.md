@@ -1,49 +1,62 @@
-# حالة الدعم — Whyred Kernel
+# Phoenix-Whyred Status
 
-آخر تحديث: 2026-07-18
+Last updated: 2026-07-18
 
-## مسار 6.18 LTS Hybrid (الافتراضي)
+## Major Transition: Linux Mainline 6.18 LTS
 
-| المكوّن | الحالة | ملاحظات |
-|---------|--------|---------|
-| سكربتات + CI | ✅ | KERNEL_TRACK=6.18, patched CI, validation scripts |
-| قاعدة android17-6.18 | ✅ | setup يجلب ACK + يثبّت على commit محدد |
-| إثبات البناء (build-info) | ✅ | build-info.txt + SHA256SUMS + toolchain versions |
-| سلامة الباتشات | ✅ | APPLIED/FAILED tracking, exit on failure |
-| التحقق من الإعدادات | ✅ | validate-config.sh يتحقق من 30+ CONFIG حرج |
-| DT whyred (لوحة/PMIC/pinctrl/USB/MMC/TS) | 🟡 | مُحدَّث من ref Lineage20 — بقي dump الجهاز |
-| مطابقة stock (مرجع vendor) | ✅ | msm-id/board-id، touch `blsp_i2c1`، splash/ramoops |
-| أدوات مطابقة stock DTB | ✅ | extract + compare + `fetch-stock-ref` |
-| bring-up تدريجي (UART→…→لمس) | 🟡 | `BRINGUP_STAGE` + earlycon `0x0c170000` |
-| whyred_board / power / wlan / panel | 🟡 | درايفرات platform + placeholders |
-| Touch Novatek عبر DT | 🟡 | node + in-tree nvt (مرحلة 5) |
-| Fingerprint | 🔴 | node معطل |
-| DRM panel كامل | 🔴 | simple-fb أولاً (مرحلة 4) |
-| Audio / Camera | 🔴 | placeholders |
-| إقلاع ROM كامل | 🔴 | بعد مراحل bring-up |
-| BTF (BPF Type Format) | 🟡 | معطّل مؤقتاً — pahole >= 1.25 مطلوب (انظر docs/BTF_STATUS.md) |
+**Key discovery:** Linux Mainline 6.18 LTS already has extensive SDM636/SDM660 support — including `sdm636-xiaomi-whyred.dtb` — via the sdm660-mainline project merged upstream.
 
-راجع: [DEVICE_TREE.md](DEVICE_TREE.md) · [STOCK_DTB.md](STOCK_DTB.md) · [BRINGUP.md](BRINGUP.md) · [DRIVERS.md](DRIVERS.md)
+**Architecture:** Linux Mainline 6.18 LTS as primary kernel source; downstream 4.19 as reference only.
 
-## مسار 4.19 (بديل ROM)
+See: [MAINLINE_MIGRATION_AUDIT.md](MAINLINE_MIGRATION_AUDIT.md)
 
-| المكوّن | الحالة | ملاحظات |
-|---------|--------|---------|
+---
+
+## 6.18 LTS Mainline Track (Default)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Scripts + CI | ✅ | KERNEL_TRACK=6.18, mainline clone, validation |
+| Linux Mainline 6.18 LTS base | ✅ | setup clones kernel.org v6.18 tag |
+| Build provenance (build-info) | ✅ | build-info.txt + SHA256SUMS + toolchain versions |
+| Patch safety | ✅ | APPLIED/FAILED tracking, exit on failure |
+| Config validation | ✅ | validate-config.sh checks 30+ critical CONFIGs |
+| Device Tree (board/PMIC/pinctrl) | 🟡 | Updated from LineageOS ref — needs device dump |
+| Stock alignment (vendor ref) | ✅ | msm-id/board-id, touch `blsp_i2c1`, splash/ramoops |
+| Stock DTB matching tools | ✅ | extract + compare + `fetch-stock-ref` |
+| Gradual bring-up (UART→…→touch) | 🟡 | `BRINGUP_STAGE` + earlycon `0x0c170000` |
+| whyred_board (sysfs identity) | 🟡 | Optional board glue module |
+| Touch Novatek via DT | 🟡 | node + in-tree nvt (stage 5) |
+| Fingerprint | 🔴 | node disabled |
+| Full DRM panel | 🔴 | simple-fb first (stage 4) |
+| Audio / Camera | 🔴 | upstream drivers need DT wiring |
+| Full ROM boot | 🔴 | after bring-up stages |
+| BTF (BPF Type Format) | 🟡 | disabled temporarily — pahole >= 1.25 required |
+
+See: [DEVICE_TREE.md](DEVICE_TREE.md) · [STOCK_DTB.md](STOCK_DTB.md) · [BRINGUP.md](BRINGUP.md) · [DRIVERS.md](DRIVERS.md)
+
+## 4.19 Track (ROM fallback)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
 | San-Kernel 4.19 | ✅ | KERNEL_TRACK=4.19 |
 | whyred-perf_defconfig | ✅ | |
-| إقلاع ROM 4.19 | 🟡 | بعد build ناجح |
+| ROM 4.19 boot | 🟡 | after successful build |
 
-## الرموز
+## Legend
 
-- ✅ جاهز للاستخدام في المشروع  
-- 🟡 قيد العمل / جزئي  
-- 🔴 غير مُنفَّذ بعد  
+- ✅ Ready for use
+- 🟡 In progress / partial
+- 🔴 Not yet implemented
 
-## أولويات العمل الحالية
+## Current Work Priorities
 
-1. ~~بناء Image من ACK 6.18~~ (مسار جاهز)  
-2. ~~مطابقة stock من مرجع vendor~~ — [STOCK_AUDIT.md](STOCK_AUDIT.md) ✅  
-3. **تحقق dump من الجهاز** (اختياري لكن مهم): `extract-stock-dtb` + `compare-stock-dt`  
-4. **bring-up على الجهاز:** `make bringup1` → … → `bringup5`  
+1. ~~Build Image from ACK 6.18~~ (path ready)
+2. ~~Stock matching from vendor ref~~ — [STOCK_AUDIT.md](STOCK_AUDIT.md) ✅
+3. **Switch to Linux Mainline 6.18 LTS** — [MAINLINE_MIGRATION_AUDIT.md](MAINLINE_MIGRATION_AUDIT.md)
+4. **Remove redundant whyred drivers** (6 of 7)
+5. **Clean up Device Tree** — remove dangerous `whyred_power` node
+6. **Device dump verification** (optional but important): `extract-stock-dtb` + `compare-stock-dt`
+7. **Device bring-up:** `make bringup1` → … → `bringup5`
 
-تفصيل: [BRINGUP.md](BRINGUP.md) · [STOCK_AUDIT.md](STOCK_AUDIT.md)
+Details: [BRINGUP.md](BRINGUP.md) · [STOCK_AUDIT.md](STOCK_AUDIT.md) · [MAINLINE_MIGRATION_AUDIT.md](MAINLINE_MIGRATION_AUDIT.md)

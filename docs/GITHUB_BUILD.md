@@ -47,11 +47,11 @@ git push origin v0.1.0
 ## حدود GitHub المجاني
 
 - مساحة القرص محدودة → الـ workflow يحرّر مساحة تلقائياً.
-- استنساخ `android17-6.18` كبير وقد يستغرق وقتاً طويلاً.
+- استنساخ Linux Mainline من kernel.org أسرع بكثير من ACK.
 - مهلة job: حتى 6 ساعات (`timeout-minutes: 360`).
 - الوضع `image` أخف من `full` (بدون modules).
 
-إذا فشل الاستنساخ من `android.googlesource.com`، أعد تشغيل الـ job أو غيّر `GKI_REMOTE` في `PROJECT.conf` إلى مرآة.
+إذا فشل الاستنساخ من `kernel.org`، أعد تشغيل الـ job أو غيّر `GKI_REMOTE` في `PROJECT.conf` إلى مرآة.
 
 ## البناء محلياً بنفس أوامر CI
 

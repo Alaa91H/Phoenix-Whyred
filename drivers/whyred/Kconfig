@@ -4,8 +4,8 @@ menuconfig WHYRED_DRIVERS
 	depends on ARCH_QCOM || COMPILE_TEST
 	default y if ARCH_QCOM
 	help
-	  Board glue and helpers for Xiaomi whyred hybrid kernel.
-	  Prefer mainline drivers via Device Tree when available.
+	  Board glue and helpers for Xiaomi whyred mainline kernel.
+	  Most hardware is handled by upstream drivers via DT.
 
 if WHYRED_DRIVERS
 
@@ -14,37 +14,6 @@ config WHYRED_BOARD
 	default y
 	help
 	  Sysfs identity and panel geometry from DT (xiaomi,whyred-board).
-
-config WHYRED_DISPLAY
-	tristate "Whyred panel helper"
-	default m
-	help
-	  Panel geometry sysfs helper (1080x2160). Full DSI still needs DRM panel.
-
-config WHYRED_TOUCH
-	tristate "Whyred touchscreen glue"
-	depends on I2C
-	default m
-	help
-	  Optional reset sequencing. Prefer novatek,nvt-ts via DT.
-
-config WHYRED_AUDIO
-	tristate "Whyred audio placeholder"
-	default m
-
-config WHYRED_CAMERA
-	tristate "Whyred camera placeholder"
-	default m
-
-config WHYRED_POWER
-	tristate "Whyred power_supply placeholder"
-	depends on POWER_SUPPLY
-	default m
-	help
-	  Temporary battery psy until SMB/FG drivers work.
-
-config WHYRED_WLAN
-	tristate "Whyred WLAN board hints"
-	default m
+	  Optional — provides board identification via sysfs.
 
 endif # WHYRED_DRIVERS

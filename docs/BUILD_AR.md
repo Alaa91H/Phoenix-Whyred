@@ -1,4 +1,4 @@
-# دليل البناء — كيرنل whyred الهجين 6.18
+# دليل البناء — Phoenix-Whyred 6.18 LTS
 
 > **للبناء على GitHub:** انظر [GITHUB_BUILD.md](GITHUB_BUILD.md)
 
@@ -12,7 +12,7 @@ sudo apt install -y git make bc bison flex libssl-dev libelf-dev \
   zip unzip python3 device-tree-compiler gcc-aarch64-linux-gnu clang lld llvm
 ```
 
-يفضّل Clang الخاص بـ AOSP لبناء GKI رسمي.
+يفضّل Clang لبناء the kernel.
 
 ## 2. الإعداد
 
@@ -23,7 +23,7 @@ chmod +x scripts/*.sh
 ./scripts/setup.sh
 ```
 
-هذا يجلب `android17-6.18` إلى `.src/common` (حجم كبير).
+هذا يجلب Linux Mainline 6.18 LTS إلى `.src/linux-6.18`.
 
 ## 3. الباتشات
 
@@ -78,4 +78,4 @@ dtc -I dtb -O dts -o stock-whyred.dts stock.dtb
 | لا إقلاع / شاشة سوداء | UART log، تحقق DTB / cmdline |
 | bootloop بعد شعار | modules / SELinux / vendor mismatch |
 | لا Wi‑Fi | firmware تحت /vendor/firmware |
-| KMI mismatch | أعد بناء الوحدات مع نفس GKI |
+| KMI mismatch | أعد بناء الوحدات مع نفس kernel version |

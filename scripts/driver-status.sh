@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Report driver status for whyred hybrid kernel
+# Report driver status for Phoenix-Whyred kernel
 # Shows what's enabled, what's placeholder, what's missing
 set -euo pipefail
 
@@ -9,23 +9,17 @@ source "${ROOT}/PROJECT.conf"
 
 CONFIG="${ROOT}/${DIST_DIR}/config"
 if [[ ! -f "${CONFIG}" ]]; then
-  CONFIG="${ROOT}/configs/fragments/hybrid.config"
+  CONFIG="${ROOT}/configs/fragments/whyred.config"
 fi
 
 echo "======================================"
-echo " Whyred Driver Status Report"
+echo " Phoenix-Whyred Driver Status Report"
 echo "======================================"
 echo ""
 
 echo "=== Whyred-specific drivers (drivers/whyred/) ==="
 DRIVERS=(
-  "whyred_board:Core board identification"
-  "whyred_display:DRM display panel driver"
-  "whyred_touch:Touchscreen driver"
-  "whyred_power:Power management (battery/charging)"
-  "whyred_wlan:Wi-Fi connectivity driver"
-  "whyred_audio:Audio codec driver"
-  "whyred_camera:Camera sensor driver"
+  "whyred_board:Core board identification (sysfs)"
 )
 
 for entry in "${DRIVERS[@]}"; do
@@ -33,13 +27,7 @@ for entry in "${DRIVERS[@]}"; do
   drvfile="${ROOT}/drivers/whyred/${drv}.c"
   if [[ -f "${drvfile}" ]]; then
     lines=$(wc -l < "${drvfile}" | tr -d ' ')
-    is_stub="0"
-    grep -q 'platform_driver_no_pm\|module_init.*stub\|TODO\|FIXME' "${drvfile}" 2>/dev/null && is_stub="1"
-    if [[ ${is_stub} -eq 1 ]]; then
-      status="PLACEHOLDER (${lines} lines)"
-    else
-      status="ACTIVE (${lines} lines)"
-    fi
+    status="ACTIVE (${lines} lines)"
   else
     status="MISSING"
   fi
@@ -47,27 +35,50 @@ for entry in "${DRIVERS[@]}"; do
 done
 
 echo ""
+echo "=== Upstream drivers (via DT + config) ==="
+UPSTREAM_DRIVERS=(
+  "CONFIG_TOUCHSCREEN_NT36XXX:Novatek touch (upstream)"
+  "CONFIG_DRM_MSM:DRM display (upstream)"
+  "CONFIG_ATH10K_SNOC:Wi-Fi Atheros (upstream)"
+  "CONFIG_CHARGER_QCOM_SMB2:Charger (upstream)"
+  "CONFIG_BATTERY_QCOM_BATTMGR:Battery (upstream)"
+  "CONFIG_SND_SOC_WCD9335:Audio codec (upstream)"
+  "CONFIG_MMC_SDHCI_MSM:MMC/SDHCI storage (upstream)"
+  "CONFIG_USB_DWC3_QCOM:USB (upstream)"
+  "CONFIG_QCOM_Q6V5_MSS:Modem (upstream)"
+  "CONFIG_REMOTEPROC:Remote processors (upstream)"
+)
+
+for entry in "${UPSTREAM_DRIVERS[@]}"; do
+  IFS=':' read -r sym desc <<< "$entry"
+  if [[ -f "${CONFIG}" ]]; then
+    if grep -q "^${sym}=" "${CONFIG}" 2>/dev/null; then
+      val=$(grep "^${sym}=" "${CONFIG}" | tail -1 | cut -d= -f2)
+      printf "  %-40s = %-8s (%s)\n" "${sym}" "${val}" "${desc}"
+    elif grep -q "^# ${sym} is not set" "${CONFIG}" 2>/dev/null; then
+      printf "  %-40s   not set  (%s)\n" "${sym}" "${desc}"
+    else
+      printf "  %-40s   ABSENT   (%s)\n" "${sym}" "${desc}"
+    fi
+  fi
+done
+
+echo ""
 echo "=== Critical Kconfig symbols ==="
 if [[ -f "${CONFIG}" ]]; then
   symbols=(
     "CONFIG_WHYRED_DRIVERS:Whyred driver Kconfig"
-    "CONFIG_WHYRED_DISPLAY:Display driver"
-    "CONFIG_WHYRED_TOUCH:Touchscreen driver"
-    "CONFIG_WHYRED_POWER:Power driver"
-    "CONFIG_WHYRED_WLAN:Wi-Fi driver"
-    "CONFIG_MFD_SPMI_PMIC:SPMI PMIC (power)"
-    "CONFIG_REGULATOR_PM660:PM660 regulator"
-    "CONFIG_REGULATOR_PM660L:PM660L regulator"
-    "CONFIG_PINCTRL_SDM636:SDM636 pinctrl"
-    "CONFIG_CLK_SDM636:SDM636 clocks"
+    "CONFIG_WHYRED_BOARD:Board identity"
+    "CONFIG_PINCTRL_SDM660:SDM660 pinctrl"
+    "CONFIG_SDM_GCC_660:SDM660 clocks"
+    "CONFIG_SDM_GPUCC_660:SDM660 GPU clocks"
+    "CONFIG_SDM_VIDEOCC_660:SDM660 video clocks"
+    "CONFIG_SDM_DISPCC_660:SDM660 display clocks"
+    "CONFIG_INTERCONNECT_QCOM_SDM660:SDM660 interconnect"
     "CONFIG_MMC_SDHCI_MSM:MMC/SDHCI storage"
-    "CONFIG_USB_DWC3_DUAL_ROLE:USB dual role"
-    "CONFIG_TOUCHSCREEN_NT36XXX:Novatek touch (ACK)"
-    "CONFIG_DRM_MSM:DRM display (QCOM)"
-    "CONFIG_ATH10K_SNOC:Wi-Fi Atheros (ACK)"
-    "CONFIG_THERMAL_MSM_TZ:Thermal management"
-    "CONFIG_SMP:Multi-core"
-    "CONFIG_ARM64:Architecture"
+    "CONFIG_DRM_MSM:DRM display"
+    "CONFIG_TOUCHSCREEN_NT36XXX:Novatek touch"
+    "CONFIG_ATH10K_SNOC:Wi-Fi"
     "CONFIG_DEBUG_INFO_BTF:BTF (disabled)"
     "CONFIG_MODULES:Loadable modules"
     "CONFIG_CMA:Contiguous memory allocator"

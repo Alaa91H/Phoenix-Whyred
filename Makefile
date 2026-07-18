@@ -1,14 +1,14 @@
-# Whyred Hybrid Kernel 6.18 LTS — top-level Makefile
+# Phoenix-Whyred 6.18 LTS — top-level Makefile
 
 .PHONY: help setup import patches config build image pack clean distclean info \
 	setup-618 setup-419 build-618 build-419 all \
 	bringup1 bringup2 bringup3 bringup4 bringup5 stock-dt-compare stock-ref validate
 
 help:
-	@echo "Whyred Hybrid Kernel 6.18 LTS (default)"
+	@echo "Phoenix-Whyred 6.18 LTS (Linux Mainline)"
 	@echo ""
-	@echo "  make setup       - clone android17-6.18 + overlay whyred"
-	@echo "  make build       - build hybrid Image.gz + modules"
+	@echo "  make setup       - clone Linux Mainline 6.18 + overlay whyred"
+	@echo "  make build       - build Image.gz + modules"
 	@echo "  make image       - Image only (faster)"
 	@echo "  make pack        - AnyKernel3 zip"
 	@echo "  make all         - setup → build → pack"

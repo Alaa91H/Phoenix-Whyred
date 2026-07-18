@@ -21,10 +21,6 @@ required=(
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-pinctrl.dtsi
   arch/arm64/boot/dts/qcom/sdm636.dtsi
   drivers/whyred/whyred_board.c
-  drivers/whyred/power/whyred_power.c
-  drivers/whyred/touch/whyred_touch.c
-  drivers/whyred/display/whyred_panel.c
-  drivers/whyred/wlan/whyred_wlan.c
   include/dt-bindings/whyred/whyred.h
   include/dt-bindings/whyred/bringup.h
   scripts/setup.sh
@@ -47,6 +43,7 @@ required=(
   docs/BUILD_AR.md
   docs/ROADMAP.md
   docs/AUDIT_6.18.md
+  docs/MAINLINE_MIGRATION_AUDIT.md
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-bringup.dtsi
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-reserved.dtsi
   configs/fragments/bringup/stage1-uart.config
@@ -80,28 +77,30 @@ for v in PROJECT_NAME KERNEL_TRACK DEVICE_CODENAME SOC GKI_BRANCH_REF GKI_COMMIT
   fi
 done
 if [[ "${KERNEL_TRACK}" != "6.18" ]]; then
-  echo "NOTE: default track should be 6.18 for hybrid LTS (got ${KERNEL_TRACK})"
+  echo "NOTE: default track should be 6.18 for mainline LTS (got ${KERNEL_TRACK})"
 fi
 if [[ "${KERNEL_VERSION}" != "6.18" ]]; then
-  echo "NOTE: expected KERNEL_VERSION=6.18 for hybrid default"
+  echo "NOTE: expected KERNEL_VERSION=6.18 for mainline default"
 fi
 # Verify commit pin is not default/empty
 if [[ -z "${GKI_COMMIT:-}" || "${GKI_COMMIT}" == "HEAD" ]]; then
   echo "WARNING: GKI_COMMIT not pinned — builds will not be reproducible"
 fi
+# Verify source is kernel.org (mainline)
+if [[ "${GKI_REMOTE:-}" != *"kernel.org"* ]]; then
+  echo "NOTE: GKI_REMOTE should point to kernel.org for Linux Mainline (got ${GKI_REMOTE:-unset})"
+fi
 
 echo "==> C stubs compile-check (host, syntax only)"
 if command -v gcc >/dev/null 2>&1; then
-  # -fsyntax-only won't fully resolve kernel headers; just check our files parse as C with stubs
-  for c in drivers/whyred/*.c drivers/whyred/*/*.c; do
+  # lightweight: ensure file non-empty and has MODULE_LICENSE
+  for c in drivers/whyred/*.c; do
     [[ -f "$c" ]] || continue
-    # lightweight: ensure file non-empty and has MODULE_LICENSE
-    if ! grep -q 'MODULE_LICENSE' "$c"; then
-      if [[ "$(basename "$c")" != "whyred_board.c" ]]; then
-        echo "WARN: no MODULE_LICENSE in $c"
-      fi
+    if grep -q 'MODULE_LICENSE' "$c"; then
+      echo "OK  present $c"
+    else
+      echo "WARN: no MODULE_LICENSE in $c"
     fi
-    echo "OK  present $c"
   done
 fi
 

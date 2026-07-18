@@ -1,5 +1,0 @@
-config WHYRED_CAMERA
-	tristate "Whyred camera sensor glue"
-	help
-	  Camera on SDM660 Android usually needs CAMSS + vendor sensors.
-	  Mainline CAMSS support may be incomplete — marked WIP.

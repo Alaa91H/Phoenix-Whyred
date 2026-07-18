@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Setup kernel sources — default: Hybrid 6.18 LTS (android17-6.18)
+# Setup kernel sources — default: Linux Mainline 6.18 LTS
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,13 +11,12 @@ source "${ROOT}/scripts/ci-env.sh"
 mkdir -p "${ROOT}/${SRC_DIR}"
 cd "${ROOT}"
 
-echo "==> Whyred Hybrid setup"
+echo "==> Phoenix-Whyred setup"
 echo "    KERNEL_TRACK=${KERNEL_TRACK}"
 echo "    Device=${DEVICE_CODENAME} (${SOC})"
 ci_free_disk
 
 if ci_is_github; then
-  SKIP_SDM660="${SKIP_SDM660:-1}"
   FETCH_LTS="${FETCH_LTS:-0}"
   export GIT_HTTP_LOW_SPEED_LIMIT=1000
   export GIT_HTTP_LOW_SPEED_TIME=60
@@ -25,27 +24,27 @@ fi
 
 setup_618() {
   local dest="${ROOT}/${GKI_SRC}"
-  echo "==> Hybrid 6.18 LTS base: Android ACK ${GKI_BRANCH_REF}"
+  echo "==> Linux Mainline 6.18 LTS base"
   echo "    ${GKI_REMOTE}"
 
   if [[ ! -d "${dest}/.git" && ! -f "${dest}/Makefile" ]]; then
     mkdir -p "$(dirname "${dest}")"
-    if ! ci_git_clone "${GKI_REMOTE}" "${dest}" "${GKI_BRANCH_REF}"; then
-      echo "ERROR: failed to clone android17-6.18 (GKI / ACK)"
-      echo "Hint: set GKI_REMOTE to a mirror if googlesource is slow"
+    echo "==> Cloning Linux Mainline 6.18 LTS..."
+    # Use shallow clone with specific tag for speed
+    if ! git clone --depth 1 --branch "${GKI_BRANCH_REF}" "${GKI_REMOTE}" "${dest}"; then
+      echo "ERROR: failed to clone Linux Mainline 6.18 LTS"
+      echo "Hint: set GKI_REMOTE to a mirror if kernel.org is slow"
       exit 1
     fi
   else
-    echo "==> GKI tree present — updating..."
+    echo "==> Mainline tree present — updating..."
     git -C "${dest}" fetch --depth 1 origin "${GKI_BRANCH_REF}" || true
     git -C "${dest}" checkout -B "${GKI_BRANCH_REF}" FETCH_HEAD 2>/dev/null || true
   fi
 
-  # Pin to exact commit for reproducibility
+  # Pin to exact tag/commit for reproducibility
   if [[ -n "${GKI_COMMIT:-}" && "${GKI_COMMIT}" != "HEAD" ]]; then
     echo "==> Pinning to GKI_COMMIT=${GKI_COMMIT}"
-    git -C "${dest}" fetch --depth 1 origin "${GKI_COMMIT}" 2>/dev/null || \
-      git -C "${dest}" fetch --depth 100 origin "${GKI_BRANCH_REF}" || true
     if git -C "${dest}" cat-file -t "${GKI_COMMIT}" >/dev/null 2>&1; then
       git -C "${dest}" checkout "${GKI_COMMIT}" 2>/dev/null || \
         echo "WARNING: could not checkout ${GKI_COMMIT} — using branch HEAD"
@@ -54,55 +53,27 @@ setup_618() {
     fi
   fi
 
-  # Optional pure LTS 6.18.y for cherry-picks
-  if [[ "${FETCH_LTS}" == "1" ]]; then
-    local lts="${ROOT}/${LTS_DIR}"
-    if [[ ! -d "${lts}/.git" ]]; then
-      echo "==> Cloning kernel.org LTS ${LTS_BRANCH}..."
-      ci_git_clone "${LTS_REMOTE}" "${lts}" "${LTS_BRANCH}" || \
-        echo "WARNING: LTS clone failed (optional)"
-    fi
-  fi
-
-  # Optional sdm660-mainline reference
-  if [[ "${SKIP_SDM660}" != "1" ]]; then
-    local sdm="${ROOT}/${SDM660_DIR}"
-    if [[ ! -d "${sdm}/.git" ]]; then
-      echo "==> Cloning sdm660-mainline reference..."
-      ci_git_clone "${SDM660_REMOTE}" "${sdm}" "${SDM660_BRANCH}" || \
-        echo "WARNING: sdm660-mainline clone failed"
-    fi
-  else
-    echo "==> SKIP_SDM660=1"
-  fi
-
-  echo "==> Overlaying hybrid whyred files into GKI tree..."
+  echo "==> Overlaying whyred files into mainline tree..."
   mkdir -p "${dest}/arch/arm64/boot/dts/qcom" \
            "${dest}/arch/arm64/configs" \
            "${dest}/drivers/whyred" \
-           "${dest}/include/dt-bindings/whyred" \
-           "${dest}/kernel/configs/whyred-hybrid"
+           "${dest}/include/dt-bindings/whyred"
 
   # Device tree (all whyred fragments)
   cp -a "${ROOT}/arch/arm64/boot/dts/qcom/"*.dts \
         "${ROOT}/arch/arm64/boot/dts/qcom/"*.dtsi \
         "${dest}/arch/arm64/boot/dts/qcom/" 2>/dev/null || true
-  # Do not overwrite entire qcom/Makefile — append dtb line only (below)
+
+  # Configs
   cp -a "${ROOT}/arch/arm64/configs/"* "${dest}/arch/arm64/configs/" 2>/dev/null || true
 
   # Drivers (rsync-like recursive)
-  rm -rf "${dest}/drivers/whyred"
   mkdir -p "${dest}/drivers/whyred"
   cp -a "${ROOT}/drivers/whyred/." "${dest}/drivers/whyred/"
 
+  # DT bindings
   mkdir -p "${dest}/include/dt-bindings/whyred"
   cp -a "${ROOT}/include/dt-bindings/whyred/"* "${dest}/include/dt-bindings/whyred/" 2>/dev/null || true
-  # fragments + bringup subdir
-  mkdir -p "${dest}/kernel/configs/whyred-hybrid/bringup"
-  cp -a "${ROOT}/configs/fragments/"*.config \
-        "${dest}/kernel/configs/whyred-hybrid/" 2>/dev/null || true
-  cp -a "${ROOT}/configs/fragments/bringup/"*.config \
-        "${dest}/kernel/configs/whyred-hybrid/bringup/" 2>/dev/null || true
 
   # Wire drivers/whyred into kernel build system
   if [[ -f "${dest}/drivers/Kconfig" ]] && ! grep -q 'whyred/Kconfig' "${dest}/drivers/Kconfig"; then
@@ -122,20 +93,19 @@ setup_618() {
   # Provenance lock
   mkdir -p "${ROOT}/vendor/import"
   {
-    echo "track=6.18-hybrid-lts"
-    echo "gki_remote=${GKI_REMOTE}"
-    echo "gki_branch=${GKI_BRANCH_REF}"
-    echo "gki_commit_pinned=${GKI_COMMIT:-HEAD}"
-    echo "gki_commit_actual=$(git -C "${dest}" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "android_release=${ANDROID_RELEASE}"
-    echo "lts_series=6.18"
+    echo "track=6.18-mainline-lts"
+    echo "kernel_remote=${GKI_REMOTE}"
+    echo "kernel_branch=${GKI_BRANCH_REF}"
+    echo "kernel_commit_pinned=${GKI_COMMIT:-HEAD}"
+    echo "kernel_commit_actual=$(git -C "${dest}" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "kernel_version=$(git -C "${dest}" describe --tags --always 2>/dev/null || echo unknown)"
     echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "${ROOT}/vendor/import/kernel-6.18-hybrid.lock"
+  } > "${ROOT}/vendor/import/kernel-6.18-mainline.lock"
 
   local ver
   ver="$(make -C "${dest}" -s kernelversion 2>/dev/null || echo 6.18.x)"
   echo "==> Kernel version string: ${ver}"
-  echo "==> Hybrid 6.18 LTS sources ready: ${dest}"
+  echo "==> Linux Mainline 6.18 LTS sources ready: ${dest}"
 }
 
 setup_419() {
@@ -152,7 +122,7 @@ case "${KERNEL_TRACK}" in
   4.19|419|downstream)
     setup_419
     ;;
-  6.18|618|gki|hybrid|lts)
+  6.18|618|lts|mainline|hybrid)
     setup_618
     ;;
   *)
@@ -168,7 +138,7 @@ else
 fi
 
 echo ""
-echo "Next (hybrid 6.18 LTS):"
+echo "Next (mainline 6.18 LTS):"
 echo "  ./scripts/apply-patches.sh"
 echo "  ./scripts/build.sh whyred"
 echo "  FETCH_ANYKERNEL=1 ./scripts/pack.sh"

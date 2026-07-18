@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Whyred Hybrid 6.18 LTS (default) or Downstream 4.19
+# Build Phoenix-Whyred 6.18 LTS (default) or Downstream 4.19
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,24 +53,25 @@ if command -v clang >/dev/null 2>&1; then
   fi
 fi
 
-# ---------- Hybrid 6.18 LTS ----------
+# ---------- Mainline 6.18 LTS ----------
 config_618() {
-  echo "==> [6.18 LTS Hybrid] ${BASE_DEFCONFIG} + fragments"
-  if [[ -f "${COMMON}/arch/arm64/configs/gki_defconfig" ]]; then
-    "${MAKE[@]}" gki_defconfig
-  elif [[ -f "${COMMON}/arch/arm64/configs/whyred_hybrid_defconfig" ]]; then
-    "${MAKE[@]}" whyred_hybrid_defconfig
+  echo "==> [6.18 LTS Mainline] ${BASE_DEFCONFIG} + fragments"
+  if [[ -f "${COMMON}/arch/arm64/configs/${BASE_DEFCONFIG}" ]]; then
+    "${MAKE[@]}" "${BASE_DEFCONFIG}"
   else
     "${MAKE[@]}" defconfig
   fi
 
   local frags=(
-    "${ROOT}/${FRAGMENT_ANDROID}"
     "${ROOT}/${FRAGMENT_SDM660}"
     "${ROOT}/${FRAGMENT_WHYRED}"
-    "${ROOT}/${FRAGMENT_HYBRID}"
     "${ROOT}/${FRAGMENT_LTS}"
   )
+
+  # Optional Android overlay (binder/cgroups/SELinux)
+  if [[ -f "${ROOT}/${FRAGMENT_ANDROID}" ]]; then
+    frags+=("${ROOT}/${FRAGMENT_ANDROID}")
+  fi
 
   # Cumulative bring-up Kconfig hints (1..BRINGUP_STAGE)
   local s stage_frags=(
@@ -119,7 +120,7 @@ collect_images() {
 }
 
 build_618() {
-  echo "==> [6.18 LTS Hybrid] Building Image.gz (jobs=${JOBS})..."
+  echo "==> [6.18 LTS Mainline] Building Image.gz (jobs=${JOBS})..."
   set +e
   "${MAKE[@]}" Image.gz 2>&1 | tee "${ROOT}/${OUT_DIR}/build-image.log"
   local rc=${PIPESTATUS[0]}
@@ -171,14 +172,14 @@ build_618() {
     echo "=== Build Provenance ==="
     echo "project=${PROJECT_NAME}"
     echo "version=${PROJECT_VERSION}"
-    echo "track=6.18-hybrid-lts"
+    echo "track=6.18-mainline-lts"
     echo "kernel_version=$(make -C "${COMMON}" O="${BDIR}" -s kernelrelease 2>/dev/null || echo unknown)"
     echo ""
     echo "=== Source ==="
-    echo "gki_remote=${GKI_REMOTE}"
-    echo "gki_branch=${GKI_BRANCH_REF}"
-    echo "gki_commit_pinned=${GKI_COMMIT:-HEAD}"
-    echo "gki_commit_actual=$(git -C "${COMMON}" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "kernel_remote=${GKI_REMOTE}"
+    echo "kernel_branch=${GKI_BRANCH_REF}"
+    echo "kernel_commit_pinned=${GKI_COMMIT:-HEAD}"
+    echo "kernel_commit_actual=$(git -C "${COMMON}" rev-parse HEAD 2>/dev/null || echo unknown)"
     echo "project_commit=$(git -C "${ROOT}" rev-parse HEAD 2>/dev/null || echo local)"
     echo ""
     echo "=== Toolchain ==="
@@ -215,7 +216,7 @@ build_618() {
     [[ -f build-info.txt ]] && sha256sum build-info.txt 2>/dev/null || true
   ) > "${ROOT}/${DIST_DIR}/SHA256SUMS" 2>/dev/null || true
 
-  echo "==> Hybrid 6.18 LTS build finished (BRINGUP_STAGE=${BRINGUP_STAGE})"
+  echo "==> Mainline 6.18 LTS build finished (BRINGUP_STAGE=${BRINGUP_STAGE})"
 }
 
 # ---------- 4.19 ----------

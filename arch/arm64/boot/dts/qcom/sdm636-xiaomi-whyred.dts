@@ -3,7 +3,7 @@
  * Device Tree for Xiaomi Redmi Note 5 / Note 5 Pro (whyred)
  * SoC: Qualcomm Snapdragon 636 (SDM636)
  *
- * Hybrid Kernel 6.18 LTS target.
+ * Phoenix-Whyred: Linux Mainline 6.18 LTS target.
  *
  * Base: mainline SDM660 board pattern (sdm660-xiaomi-lavender.dts)
  * Stock alignment: LineageOS android_kernel_xiaomi_sdm660 lineage-20
@@ -245,26 +245,6 @@
 		xiaomi,panel-height = <WHYRED_PANEL_HEIGHT>;
 		xiaomi,codename = "whyred";
 		xiaomi,bringup-stage = <WHYRED_BRINGUP_STAGE>;
-	};
-
-	whyred_power {
-		compatible = "xiaomi,whyred-power";
-		status = "okay";
-	};
-
-	whyred_wlan {
-		compatible = "xiaomi,whyred-wlan";
-		status = "disabled";
-	};
-
-	whyred_audio {
-		compatible = "xiaomi,whyred-audio";
-		status = "disabled";
-	};
-
-	whyred_camera {
-		compatible = "xiaomi,whyred-camera";
-		status = "disabled";
 	};
 };
 

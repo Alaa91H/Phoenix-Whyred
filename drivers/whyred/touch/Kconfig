@@ -1,3 +1,0 @@
-# WHYRED_TOUCH defined in parent drivers/whyred/Kconfig
-# This sub-Kconfig is a placeholder for future touch-specific options
-# (e.g., NT36XXX secondary driver selection, panel-sku detection).

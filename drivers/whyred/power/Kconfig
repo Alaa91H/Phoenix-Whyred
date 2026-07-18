@@ -1,3 +1,0 @@
-config WHYRED_POWER
-	tristate "Whyred charger / fuel-gauge glue"
-	depends on POWER_SUPPLY

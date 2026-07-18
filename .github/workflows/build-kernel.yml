@@ -1,6 +1,6 @@
 name: Build Kernel
 
-# Default: Whyred Hybrid 6.18 LTS (android17-6.18)
+# Default: Phoenix-Whyred 6.18 LTS (Linux Mainline)
 # Optional: KERNEL_TRACK=4.19 downstream for ROMs
 
 on:
@@ -119,8 +119,6 @@ jobs:
         env:
           KERNEL_TRACK: ${{ steps.opts.outputs.track }}
           KERNEL_419_BRANCH: ${{ steps.opts.outputs.branch }}
-          SKIP_SDM660: "1"
-          FETCH_LTS: "0"
         run: ./scripts/setup.sh
 
       - name: Import whyred inventory (4.19 only)
@@ -186,15 +184,15 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: "${{ github.ref_type == 'tag' && github.ref_name || format('ci-{0}', github.run_number) }}"
-          name: "Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI run {0}', github.run_number) }}"
+          name: "Phoenix-Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI run {0}', github.run_number) }}"
           body: |
-            ## Whyred Hybrid Kernel
-            - Track: **${{ steps.opts.outputs.track }}** (6.18 = Hybrid LTS / android17-6.18)
+            ## Phoenix-Whyred Kernel
+            - Track: **${{ steps.opts.outputs.track }}** (6.18 = Linux Mainline LTS)
             - Device: whyred (Redmi Note 5 Pro / SDM636)
             - Mode: ${{ steps.opts.outputs.mode }}
             - Commit: `${{ github.sha }}`
 
-            ⚠️ Experimental hybrid bring-up. Backup boot before flash.
+            ⚠️ Experimental bring-up. Backup boot before flash.
             4.19 builds only for **4.19-based ROMs**.
           files: |
             out/dist/*.zip

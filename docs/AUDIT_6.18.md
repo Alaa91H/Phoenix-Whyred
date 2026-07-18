@@ -1,8 +1,10 @@
-# Repository Audit — Whyred Hybrid 6.18 LTS
+# Repository Audit — Whyred Hybrid 6.18 LTS (ACK-based)
 
 **Date:** 2026-07-18
 **Auditor:** PHASE 0 automated inspection
 **Scope:** Full repository — every file inspected
+
+> **Note:** This audit covers the ACK-based hybrid architecture. For the new mainline-first architecture audit, see [MAINLINE_MIGRATION_AUDIT.md](MAINLINE_MIGRATION_AUDIT.md).
 
 ---
 
