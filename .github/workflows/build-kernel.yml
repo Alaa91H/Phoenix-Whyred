@@ -82,7 +82,7 @@ jobs:
             git make bc bison flex libssl-dev libelf-dev \
             zip unzip rsync python3 device-tree-compiler \
             gcc-aarch64-linux-gnu clang lld llvm \
-            libncurses-dev dwarves zstd cpio libdwarf-dev
+            libncurses-dev dwarves zstd cpio libdwarf-dev libdw-dev
           for d in /usr/include/libdwarf-0 /usr/include/libdwarf; do
             [ -f "$d/dwarf.h" ] && sudo ln -sf "$d/dwarf.h" /usr/include/dwarf.h
             [ -f "$d/libdwarf.h" ] && sudo ln -sf "$d/libdwarf.h" /usr/include/libdwarf.h
