@@ -73,7 +73,7 @@ jobs:
           swap-storage: true
 
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -152,7 +152,7 @@ jobs:
 
       - name: Upload artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: whyred-${{ steps.opts.outputs.track }}-${{ github.run_number }}
           path: |
@@ -169,7 +169,7 @@ jobs:
 
       - name: Release
         if: success() && (github.ref_type == 'tag' || steps.opts.outputs.create_release == 'true')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: "${{ github.ref_type == 'tag' && github.ref_name || format('ci-{0}', github.run_number) }}"
           name: "Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI run {0}', github.run_number) }}"
