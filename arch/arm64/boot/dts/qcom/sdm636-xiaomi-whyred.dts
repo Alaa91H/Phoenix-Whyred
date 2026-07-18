@@ -237,33 +237,35 @@
 
 /* ===================== Board glue ===================== */
 
-whyred_board {
-	compatible = "xiaomi,whyred-board";
-	status = "okay";
-	xiaomi,panel-width = <WHYRED_PANEL_WIDTH>;
-	xiaomi,panel-height = <WHYRED_PANEL_HEIGHT>;
-	xiaomi,codename = "whyred";
-	xiaomi,bringup-stage = <WHYRED_BRINGUP_STAGE>;
-};
+/ {
+	whyred_board {
+		compatible = "xiaomi,whyred-board";
+		status = "okay";
+		xiaomi,panel-width = <WHYRED_PANEL_WIDTH>;
+		xiaomi,panel-height = <WHYRED_PANEL_HEIGHT>;
+		xiaomi,codename = "whyred";
+		xiaomi,bringup-stage = <WHYRED_BRINGUP_STAGE>;
+	};
 
-whyred_power {
-	compatible = "xiaomi,whyred-power";
-	status = "okay";
-};
+	whyred_power {
+		compatible = "xiaomi,whyred-power";
+		status = "okay";
+	};
 
-whyred_wlan {
-	compatible = "xiaomi,whyred-wlan";
-	status = "disabled";
-};
+	whyred_wlan {
+		compatible = "xiaomi,whyred-wlan";
+		status = "disabled";
+	};
 
-whyred_audio {
-	compatible = "xiaomi,whyred-audio";
-	status = "disabled";
-};
+	whyred_audio {
+		compatible = "xiaomi,whyred-audio";
+		status = "disabled";
+	};
 
-whyred_camera {
-	compatible = "xiaomi,whyred-camera";
-	status = "disabled";
+	whyred_camera {
+		compatible = "xiaomi,whyred-camera";
+		status = "disabled";
+	};
 };
 
 #include "sdm636-xiaomi-whyred-bringup.dtsi"
