@@ -82,7 +82,7 @@ jobs:
             git make bc bison flex libssl-dev libelf-dev \
             zip unzip rsync python3 device-tree-compiler \
             gcc-aarch64-linux-gnu clang lld llvm \
-            libncurses-dev dwarves zstd cpio
+            libncurses-dev dwarves zstd cpio libdwarf-dev
 
       - name: Fix scripts
         run: |
