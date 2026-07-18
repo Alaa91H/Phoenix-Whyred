@@ -35,6 +35,7 @@ required=(
   scripts/extract-stock-dtb.sh
   scripts/compare-stock-dt.sh
   scripts/validate-config.sh
+  scripts/validate-build.sh
   scripts/fetch-stock-ref.sh
   pack/AnyKernel3/anykernel.sh
   docs/HYBRID_618_LTS.md

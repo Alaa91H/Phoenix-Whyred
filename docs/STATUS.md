@@ -1,14 +1,17 @@
 # حالة الدعم — Whyred Kernel
 
-آخر تحديث: 2026-07-16
+آخر تحديث: 2026-07-18
 
 ## مسار 6.18 LTS Hybrid (الافتراضي)
 
 | المكوّن | الحالة | ملاحظات |
 |---------|--------|---------|
-| سكربتات + CI | ✅ | KERNEL_TRACK=6.18 |
-| قاعدة android17-6.18 | ✅ | setup يجلب ACK |
-| DT whyred (لوحة/PMIC/pinctrl/USB/MMC/TS) | 🟡 | مُحدَّث من ref Lineage20 — بقي dump الجهاز |
+| سكربتات + CI | ✅ | KERNEL_TRACK=6.18, patched CI, validation scripts |
+| قاعدة android17-6.18 | ✅ | setup يجلب ACK + يثبّت على commit محدد |
+| إثبات البناء (build-info) | ✅ | build-info.txt + SHA256SUMS + toolchain versions |
+| سلامة الباتشات | ✅ | APPLIED/FAILED tracking, exit on failure |
+| التحقق من الإعدادات | ✅ | validate-config.sh يتحقق من 30+ CONFIG حرج |
+| DT whyred (لوحة/PMIC/pinctrl/USB/MMC/TS) | 🟡 | مُحدَّث من ref Lineage20 — بقي dump الجهاز |
 | مطابقة stock (مرجع vendor) | ✅ | msm-id/board-id، touch `blsp_i2c1`، splash/ramoops |
 | أدوات مطابقة stock DTB | ✅ | extract + compare + `fetch-stock-ref` |
 | bring-up تدريجي (UART→…→لمس) | 🟡 | `BRINGUP_STAGE` + earlycon `0x0c170000` |
@@ -18,6 +21,7 @@
 | DRM panel كامل | 🔴 | simple-fb أولاً (مرحلة 4) |
 | Audio / Camera | 🔴 | placeholders |
 | إقلاع ROM كامل | 🔴 | بعد مراحل bring-up |
+| BTF (BPF Type Format) | 🟡 | معطّل مؤقتاً — pahole >= 1.25 مطلوب (انظر docs/BTF_STATUS.md) |
 
 راجع: [DEVICE_TREE.md](DEVICE_TREE.md) · [STOCK_DTB.md](STOCK_DTB.md) · [BRINGUP.md](BRINGUP.md) · [DRIVERS.md](DRIVERS.md)
 

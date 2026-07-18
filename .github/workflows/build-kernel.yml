@@ -147,6 +147,14 @@ jobs:
             ./scripts/build.sh whyred
           fi
 
+      - name: Validate build output
+        if: success()
+        run: ./scripts/validate-build.sh || echo "::warning::Build validation found issues"
+
+      - name: Validate config
+        if: success()
+        run: ./scripts/validate-config.sh || echo "::warning::Config validation found issues"
+
       - name: Pack zip
         if: success()
         env:

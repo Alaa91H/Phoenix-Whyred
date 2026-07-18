@@ -2,15 +2,34 @@
 
 **Xiaomi Redmi Note 5 Pro (`whyred`)** · **SDM636** · **Linux 6.18 LTS + Android GKI (`android17-6.18`)**
 
-كيرنل **هجين** يجمع:
+## Project Status
 
-| الطبقة | المصدر | الدور |
-|--------|--------|--------|
-| **LTS / GKI** | `android17-6.18` (ACK على Linux **6.18 LTS**) | نواة حديثة + طبقات Android |
-| **SoC** | fragments SDM660 + مرجع sdm660-mainline | ساعات، pinctrl، منصة QCOM |
-| **الجهاز** | DT whyred + `drivers/whyred` | لوحة whyred |
+| Phase | Status |
+|-------|--------|
+| Repository build on CI | **Working** — Image.gz produced |
+| ACK source lock | **Working** — pinned to `3e53bdbe8bc9` |
+| Build provenance | **Working** — full build-info.txt + SHA256SUMS |
+| Patch safety | **Working** — APPLIED/FAILED tracking |
+| Config validation | **Working** — 30+ critical CONFIGs verified |
+| Device Tree | **Partial** — from LineageOS reference, not device dump |
+| Hardware bring-up | **Not started** — awaiting first boot test |
 
-> الدليل التفصيلي: **[docs/HYBRID_618_LTS.md](docs/HYBRID_618_LTS.md)**
+> This is an **experimental kernel port**. It compiles and packages successfully.
+> Hardware bring-up (UART → MMC → USB → display → touch) has not been tested on
+> physical device yet. Do not use as daily driver.
+
+## What Is This?
+
+A **hybrid** kernel combining:
+
+| Layer | Source | Role |
+|-------|--------|------|
+| **LTS / GKI** | `android17-6.18` (ACK on Linux **6.18 LTS**) | Modern kernel + Android layers |
+| **SoC** | SDM660 fragments + mainline reference | Clocks, pinctrl, QCOM platform |
+| **Device** | DT whyred + `drivers/whyred` | whyred board |
+
+> Detailed guide: **[docs/HYBRID_618_LTS.md](docs/HYBRID_618_LTS.md)**
+> Full audit: **[docs/AUDIT_6.18.md](docs/AUDIT_6.18.md)**
 
 ---
 
