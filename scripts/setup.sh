@@ -41,6 +41,19 @@ setup_618() {
     git -C "${dest}" checkout -B "${GKI_BRANCH_REF}" FETCH_HEAD 2>/dev/null || true
   fi
 
+  # Pin to exact commit for reproducibility
+  if [[ -n "${GKI_COMMIT:-}" && "${GKI_COMMIT}" != "HEAD" ]]; then
+    echo "==> Pinning to GKI_COMMIT=${GKI_COMMIT}"
+    git -C "${dest}" fetch --depth 1 origin "${GKI_COMMIT}" 2>/dev/null || \
+      git -C "${dest}" fetch --depth 100 origin "${GKI_BRANCH_REF}" || true
+    if git -C "${dest}" cat-file -t "${GKI_COMMIT}" >/dev/null 2>&1; then
+      git -C "${dest}" checkout "${GKI_COMMIT}" 2>/dev/null || \
+        echo "WARNING: could not checkout ${GKI_COMMIT} — using branch HEAD"
+    else
+      echo "WARNING: GKI_COMMIT ${GKI_COMMIT} not found in repo — using branch HEAD"
+    fi
+  fi
+
   # Optional pure LTS 6.18.y for cherry-picks
   if [[ "${FETCH_LTS}" == "1" ]]; then
     local lts="${ROOT}/${LTS_DIR}"
@@ -112,7 +125,8 @@ setup_618() {
     echo "track=6.18-hybrid-lts"
     echo "gki_remote=${GKI_REMOTE}"
     echo "gki_branch=${GKI_BRANCH_REF}"
-    echo "gki_commit=$(git -C "${dest}" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "gki_commit_pinned=${GKI_COMMIT:-HEAD}"
+    echo "gki_commit_actual=$(git -C "${dest}" rev-parse HEAD 2>/dev/null || echo unknown)"
     echo "android_release=${ANDROID_RELEASE}"
     echo "lts_series=6.18"
     echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"

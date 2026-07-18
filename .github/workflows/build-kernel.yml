@@ -130,7 +130,7 @@ jobs:
       - name: Apply patches
         env:
           KERNEL_TRACK: ${{ steps.opts.outputs.track }}
-        run: ./scripts/apply-patches.sh || echo "::warning::Some patches failed to apply"
+        run: ./scripts/apply-patches.sh
 
       - name: Build
         env:

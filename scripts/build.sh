@@ -158,14 +158,59 @@ build_618() {
     set -e
   fi
 
-  # Build stamp
+  # Build stamp — comprehensive provenance
+  local _clang_ver _ld_ver _llvm_ver _pahole_ver _as_ver _gcc_ver _config_hash
+  _clang_ver="$(clang --version 2>/dev/null | head -n1 || echo unknown)"
+  _ld_ver="$(ld.lld --version 2>/dev/null | head -n1 || echo unknown)"
+  _llvm_ver="$(llvm-ar --version 2>/dev/null | head -n1 || echo unknown)"
+  _pahole_ver="$(pahole --version 2>/dev/null | head -n1 || echo unknown)"
+  _as_ver="$(clang --version 2>/dev/null | grep -i 'LLVM' | head -n1 || echo unknown)"
+  _gcc_ver="$(gcc --version 2>/dev/null | head -n1 || echo unknown)"
+  _config_hash="$(sha256sum "${BDIR}/.config" 2>/dev/null | cut -d' ' -f1 || echo unknown)"
   {
+    echo "=== Build Provenance ==="
+    echo "project=${PROJECT_NAME}"
+    echo "version=${PROJECT_VERSION}"
     echo "track=6.18-hybrid-lts"
-    echo "localversion=${LOCALVERSION}"
+    echo "kernel_version=$(make -C "${COMMON}" O="${BDIR}" -s kernelrelease 2>/dev/null || echo unknown)"
+    echo ""
+    echo "=== Source ==="
+    echo "gki_remote=${GKI_REMOTE}"
+    echo "gki_branch=${GKI_BRANCH_REF}"
+    echo "gki_commit_pinned=${GKI_COMMIT:-HEAD}"
+    echo "gki_commit_actual=$(git -C "${COMMON}" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "project_commit=$(git -C "${ROOT}" rev-parse HEAD 2>/dev/null || echo local)"
+    echo ""
+    echo "=== Toolchain ==="
+    echo "clang=${_clang_ver}"
+    echo "linker=${_ld_ver}"
+    echo "llvm=${_llvm_ver}"
+    echo "assembler=${_as_ver}"
+    echo "gcc=${_gcc_ver}"
+    echo "pahole=${_pahole_ver}"
+    echo ""
+    echo "=== Build ==="
+    echo "host=$(uname -n 2>/dev/null || echo unknown)"
+    echo "arch=${ARCH}"
+    echo "defconfig=${BASE_DEFCONFIG}"
     echo "bringup_stage=${BRINGUP_STAGE}"
-    echo "built=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    make -C "${COMMON}" O="${BDIR}" -s kernelrelease 2>/dev/null || true
+    echo "localversion=${LOCALVERSION}"
+    echo "jobs=${JOBS}"
+    echo "llvm=${LLVM}"
+    echo "llvm_ias=${LLVM_IAS}"
+    echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo ""
+    echo "=== Config ==="
+    echo "config_hash=${_config_hash}"
+    echo "config_fragments=$(for f in "${frags[@]}"; do basename "$f"; done | tr '\n' ' ')"
   } > "${ROOT}/${DIST_DIR}/build-info.txt"
+
+  # SHA256SUMS for all artifacts
+  (
+    cd "${ROOT}/${DIST_DIR}"
+    sha256sum Image* *.dtb 2>/dev/null || true
+    sha256sum config 2>/dev/null || true
+  ) > "${ROOT}/${DIST_DIR}/SHA256SUMS" 2>/dev/null || true
 
   echo "==> Hybrid 6.18 LTS build finished (BRINGUP_STAGE=${BRINGUP_STAGE})"
 }

@@ -26,6 +26,7 @@ required=(
   drivers/whyred/display/whyred_panel.c
   drivers/whyred/wlan/whyred_wlan.c
   include/dt-bindings/whyred/whyred.h
+  include/dt-bindings/whyred/bringup.h
   scripts/setup.sh
   scripts/build.sh
   scripts/pack.sh
@@ -33,6 +34,8 @@ required=(
   scripts/apply-patches.sh
   scripts/extract-stock-dtb.sh
   scripts/compare-stock-dt.sh
+  scripts/validate-config.sh
+  scripts/fetch-stock-ref.sh
   pack/AnyKernel3/anykernel.sh
   docs/HYBRID_618_LTS.md
   docs/DEVICE_TREE.md
@@ -42,14 +45,13 @@ required=(
   docs/GITHUB_BUILD.md
   docs/BUILD_AR.md
   docs/ROADMAP.md
-  include/dt-bindings/whyred/bringup.h
+  docs/AUDIT_6.18.md
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-bringup.dtsi
   arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred-reserved.dtsi
   configs/fragments/bringup/stage1-uart.config
   configs/fragments/bringup/stage5-touch.config
   vendor/import/stock-dt/README.md
   docs/STOCK_AUDIT.md
-  scripts/fetch-stock-ref.sh
 )
 for f in "${required[@]}"; do
   if [[ ! -e "$f" ]]; then
@@ -68,7 +70,7 @@ done
 echo "==> PROJECT.conf keys"
 # shellcheck source=/dev/null
 source PROJECT.conf
-for v in PROJECT_NAME KERNEL_TRACK DEVICE_CODENAME SOC GKI_BRANCH_REF KERNEL_VERSION; do
+for v in PROJECT_NAME KERNEL_TRACK DEVICE_CODENAME SOC GKI_BRANCH_REF GKI_COMMIT KERNEL_VERSION; do
   if [[ -z "${!v:-}" ]]; then
     echo "EMPTY: $v"
     ERR=1
@@ -81,6 +83,10 @@ if [[ "${KERNEL_TRACK}" != "6.18" ]]; then
 fi
 if [[ "${KERNEL_VERSION}" != "6.18" ]]; then
   echo "NOTE: expected KERNEL_VERSION=6.18 for hybrid default"
+fi
+# Verify commit pin is not default/empty
+if [[ -z "${GKI_COMMIT:-}" || "${GKI_COMMIT}" == "HEAD" ]]; then
+  echo "WARNING: GKI_COMMIT not pinned — builds will not be reproducible"
 fi
 
 echo "==> C stubs compile-check (host, syntax only)"
