@@ -124,6 +124,30 @@
 };
 
 /* ===================== Keys ===================== */
+/*
+ * NOTE: &pon_pwrkey and &pon_resin labels may not exist in upstream
+ * pm660.dtsi. If DTS compilation fails with "undefined label" errors,
+ * uncomment the direct node definitions below and comment out the
+ * &pon_pwrkey / &pon_resin references.
+ */
+#if 0
+/* Direct node definitions (use if upstream labels are missing) */
+&pm660 {
+	pon@800 {
+		pwrkey {
+			compatible = "qcom,pm8941-pwrkey";
+			linux,code = <KEY_POWER>;
+			status = "okay";
+		};
+
+		resin {
+			compatible = "qcom,pm8941-resin";
+			linux,code = <KEY_VOLUMEDOWN>;
+			status = "okay";
+		};
+	};
+};
+#endif
 
 &pon_pwrkey {
 	status = "okay";

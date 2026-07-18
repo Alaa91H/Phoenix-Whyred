@@ -42,7 +42,7 @@
 | Subsystem | Mainline 6.18 | Whyred Status | 4.19 Downstream | Action | Reason | Risk | Priority |
 |---|---|---|---|---|---|---|---|
 | CPU (8-core Kryo 260) | `qcom,gcc-sdm660` + DT | Upstream since ~5.9 | Qualcomm BSP | `ALREADY_SUPPORTED` | Fully upstream; `qcom,gcc-sdm660` + DTS present | NONE | P0 |
-| CPUFreq (SCMI) | SCMI transport + `scmi-cpufreq` | Works on SDM660 | Qualcomm `qcom-cpufreq-hw` | `MAINLINE_DRIVER_ADAPTATION` | SCMI cpufreq works but **panics on SDM660 since 5.12**; known issue in sdm660-mainline | HIGH | P0 |
+| CPUFreq (SCMI) | SCMI transport + `scmi-cpufreq` | Works on SDM660 | Qualcomm `qcom-cpufreq-hw` | `MAINLINE_DRIVER_ADAPTATION` | SCMI cpufreq works but **panics on SDM660 since 5.12**; known issue in sdm660-mainline. May use `CONFIG_ARM_QCOM_CPUFREQ_HW` instead | MEDIUM | P0 |
 | PSCI Firmware | ARM SCMI/PSCI | Works | Qualcomm SCMI | `ALREADY_SUPPORTED` | Standard ARM PSCI; upstream | NONE | P0 |
 | Timer/Arch Timer | ARM Generic Timer | Works | ARM Generic Timer | `ALREADY_SUPPORTED` | Standard ARM; upstream | NONE | P0 |
 | GICv3 | ARM GICv3 | Works | ARM GICv3 | `ALREADY_SUPPORTED` | Standard ARM; upstream | NONE | P0 |
@@ -135,7 +135,6 @@
 | Subsystem | Mainline 6.18 | Whyred Status | 4.19 Downstream | Action | Reason | Risk | Priority |
 |---|---|---|---|---|---|---|---|
 | Adreno A509 | `qcom,adreno-3xx-gpu` (freedreno) | DT present; `adreno@500000` with `qcom,gpu-pwrlevel-0` | Qualcomm `kgsl` (proprietary) | `DEVICE_TREE_ONLY` | Freedreno supports A3xx/A5xx/A6xx; whyred DT already has GPU node with freq levels | MEDIUM | P1 |
-| Vulkan (Turnip) | Mesa Turnip driver | Depends on freedreno | Qualcomm Vulkan (proprietary) | `ALREADY_SUPPORTED` | Once DRM/KMS + freedreno working, Turnip provides Vulkan via Mesa | LOW | P2 |
 | GPU Clocks | GPUCC (`qcom,gpucc-sdm660`) | Upstream | Qualcomm GPUCC | `ALREADY_SUPPORTED` | Required for GPU clock gating | LOW | P1 |
 
 **Notes**: A3xx/A4xx/A5xx are "simple" Adreno GPUs with reasonable mainline support. A509 on SDM636 is essentially an underclocked A512. Freedreno mesa supports these. Initial bringup targets OpenGL ES via llvmpipe; GPU acceleration is P2.
@@ -214,7 +213,7 @@
 
 | Subsystem | Mainline 6.18 | Whyred Status | 4.19 Downstream | Action | Reason | Risk | Priority |
 |---|---|---|---|---|---|---|---|
-| LSM6DS3 (Gyro/Accel) | `qcom,stm_lsm6ds3` | No DTS node | `stm_lsm6ds3` sensor driver | `DOWNSTREAM_REFERENCE_ONLY` | STMicro 6-axis IMU; driver exists upstream (`drivers/iio/imu/st_lsm6dsx/`) but no whyred DTS node | MEDIUM | P3 |
+| LSM6DS3 (Gyro/Accel) | `st_lsm6dsx` (mainline) | No DTS node | `stm_lsm6ds3` sensor driver | `DEVICE_TREE_ONLY` | Mainline `st_lsm6dsx` IIO driver exists in `drivers/iio/imu/st_lsm6dsx/`; needs DTS I2C node only | LOW | P3 |
 | BME680 (Env) | BME680 IIO driver | No DTS node | Bosch BME680 driver | `DEVICE_TREE_ONLY` | Mainline BME680 IIO driver exists; needs DTS I2C node | LOW | P3 |
 | TMD2772 (Proximity/Light) | Avago/TMD2772 driver | No DTS node | `tmd2772` driver | `DEVICE_TREE_ONLY` | Mainline `tmd2772` IIO driver exists; needs DTS I2C node | LOW | P3 |
 | BMI160 (Gyro/Accel) | BMI160 IIO driver | No DTS node | Bosch BMI160 driver | `DEVICE_TREE_ONLY` | Mainline `bmi160` IIO driver exists; needs DTS I2C/SPI node | LOW | P3 |
@@ -237,7 +236,7 @@
 
 | Subsystem | Mainline 6.18 | Whyred Status | 4.19 Downstream | Action | Reason | Risk | Priority |
 |---|---|---|---|---|---|---|---|
-| NFC controller | **No driver** | No DTS node | `nfc-nci` (NXP) | `DOWNSTREAM_REFERENCE_ONLY` | No mainline NFC driver; downstream uses NXP SN100/NQ2xx with NCI protocol | CRITICAL | P3 |
+| NFC controller | **No driver** | No DTS node | `nfc-nci` (NXP) | `DOWNSTREAM_REFERENCE_ONLY` | Mainline has NXP PN5xx support; NQ2xx used in whyred may need NCI protocol adaptation. Requires I2C/SPI binding + NCI stack | HIGH | P3 |
 
 **Notes**: NFC requires: (1) I2C/SPI driver for NFC controller, (2) NCI protocol stack, (3) HAL integration. Mainline Linux has no Qualcomm/NXP NFC support for this platform.
 
@@ -268,12 +267,12 @@
 
 | Action | Count | Examples |
 |---|---|---|
-| `ALREADY_SUPPORTED` | **28** | CPU, GCC, PMIC, DDR, UART, USB, UFS, charger, UART, GENI, eMMC |
-| `DEVICE_TREE_ONLY` | **10** | BME680, TMD2772, BMI160, MPU6050, AK09911, IR, Hall, WLED, touch, Avago |
-| `MAINLINE_DRIVER_ADAPTATION` | **8** | CPUFreq (panic fix), GPU (A509), Wi-Fi (ath10k WCN3990), BT, Audio (Q6DSP), CAMSS |
+| `ALREADY_SUPPORTED` | **27** | CPU, GCC, PMIC, DDR, UART, USB, UFS, charger, UART, GENI, eMMC |
+| `DEVICE_TREE_ONLY` | **11** | LSM6DS3, BME680, TMD2772, BMI160, MPU6050, AK09911, IR, Hall, WLED, touch, Avago |
+| `MAINLINE_DRIVER_ADAPTATION` | **7** | CPUFreq (panic fix), GPU (A509), Wi-Fi (ath10k WCN3990), BT, Audio (Q6DSP), CAMSS |
 | `UPSTREAM_PATCH_REQUIRED` | **4** | Battery FG, Wi-Fi power, Sound card, SDM660 battery data |
 | `DOWNSTREAM_REFERENCE_ONLY` | **10** | Panel (TRULY/BOE/EBBG), FP, NFC, Vibration, SLPI, Wi-Fi/BT FW, Camera sensors, Battery profile |
-| `NEW_DRIVER_REQUIRED` | **1** | NFC (no mainline path at all) |
+| `NEW_DRIVER_REQUIRED` | **0** | — |
 | `UNKNOWN` | **1** | Soundwire bindings |
 
 ### By Priority
@@ -282,7 +281,7 @@
 |---|---|---|
 | **P0 (Boot)** | 15 | CPU, DDR, eMMC, GCC, PMICs, Regulators, PON, RTC, USB, UFS, UART |
 | **P1 (Daily Driver)** | 13 | Display (MDP/DSI), Panel, Touch, GPU, SD card, Wi-Fi power, BT UART, Modem, MPSS, GPUCC, VIDEOCC, DISPCC, Interconnect |
-| **P2 (Important)** | 7 | Wi-Fi (ath10k), BT, Battery FG, Battery data, LEDs, USB, Vulkan |
+| **P2 (Important)** | 6 | Wi-Fi (ath10k), BT, Battery FG, Battery data, LEDs, USB |
 | **P3 (Nice-to-have)** | 12 | Audio, Camera (all sensors + ISP), Sensors (all), FP, NFC, Vibration, Hall, Speaker Amp, Soundwire, IR |
 
 ---
