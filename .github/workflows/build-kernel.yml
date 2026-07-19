@@ -144,7 +144,7 @@ jobs:
           fi
           FAIL=0
           for sym in CONFIG_ARCH_QCOM CONFIG_CMDLINE_DROP_DANGEROUS_ANDROID_OPTIONS \
-                     CONFIG_SERIAL_MSM_GENI_SERIAL CONFIG_MMC_SDHCI_MSM \
+                     CONFIG_SERIAL_QCOM_GENI CONFIG_MMC_SDHCI_MSM \
                      CONFIG_USB_DWC3_QCOM CONFIG_DRM_MSM CONFIG_SDM_GCC_660; do
             if grep -qE "^${sym}=[my]" "$CONF"; then
               echo "  OK  $sym"

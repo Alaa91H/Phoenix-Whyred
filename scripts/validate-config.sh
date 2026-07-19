@@ -61,8 +61,7 @@ check_enabled "CONFIG_QCOM_RPMH" "RPMH"
 # === Serial / UART ===
 echo ""
 echo "==> Serial / UART (bring-up stage 1+)"
-check_enabled "CONFIG_SERIAL_MSM_GENI_SERIAL" "GENI serial" 2>/dev/null || \
-  check_enabled "CONFIG_SERIAL_QCOM_GENI" "GENI serial"
+check_enabled "CONFIG_SERIAL_QCOM_GENI" "GENI serial"
 check_enabled "CONFIG_SERIAL_EARLYCON" "Early console"
 
 # === Storage / MMC ===

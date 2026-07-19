@@ -129,7 +129,7 @@ build_image() {
   fi
 
   set +e
-  "${MAKE[@]}" dtbs 2>&1 | tee "${ROOT}/${OUT_DIR}/build-dtbs.log"
+  "${MAKE[@]}" arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred.dtb 2>&1 | tee "${ROOT}/${OUT_DIR}/build-dtbs.log"
   set -e
   collect_images || true
 
