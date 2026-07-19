@@ -94,11 +94,6 @@ config_70() {
   } >> "${ROOT}/${DIST_DIR}/localversion.txt" || true
 }
 
-config_618() {
-  echo "==> [6.18 LTS Mainline] ${BASE_DEFCONFIG} + fragments"
-  config_70
-}
-
 collect_images() {
   local found=0 img
   for img in Image.gz Image Image.gz-dtb; do

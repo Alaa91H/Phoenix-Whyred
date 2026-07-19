@@ -21,36 +21,22 @@ if ci_is_github; then
   export GIT_HTTP_LOW_SPEED_TIME=60
 fi
 
-# ---------- 7.0 direct (repo IS the kernel tree) ----------
+# ---------- 7.0 sdm660-mainline (clone + overlay) ----------
 setup_70() {
-  echo "==> sdm660-mainline 7.0.y — repo is the kernel tree"
-  if [[ ! -f "${ROOT}/Makefile" ]]; then
-    echo "ERROR: Makefile not found at ${ROOT}"
-    echo "This track expects the repo to contain the full kernel tree."
-    exit 1
-  fi
-  local ver
-  ver="$(make -C "${ROOT}" -s kernelversion 2>/dev/null || echo unknown)"
-  echo "    Kernel version: ${ver}"
-  echo "==> Source tree ready: ${ROOT}"
-}
-
-# ---------- Mainline 6.18 LTS (clone + overlay) ----------
-setup_618() {
-  local dest="${ROOT}/${SRC_DIR}"
-  echo "==> Linux Mainline 6.18 LTS base"
-  echo "    ${GKI_REMOTE}"
+  local dest="${ROOT}/${KERNEL_SRC}"
+  echo "==> sdm660-mainline 7.0.y"
+  echo "    Remote: ${GKI_REMOTE}"
+  echo "    Branch: ${GKI_BRANCH_REF}"
 
   if [[ ! -d "${dest}/.git" && ! -f "${dest}/Makefile" ]]; then
     mkdir -p "$(dirname "${dest}")"
-    echo "==> Cloning Linux Mainline 6.18 LTS..."
+    echo "==> Cloning sdm660-mainline 7.0.y..."
     if ! git clone --depth 1 --branch "${GKI_BRANCH_REF}" "${GKI_REMOTE}" "${dest}"; then
-      echo "ERROR: failed to clone Linux Mainline 6.18 LTS"
-      echo "Hint: set GKI_REMOTE to a mirror if kernel.org is slow"
+      echo "ERROR: failed to clone ${GKI_REMOTE}"
       exit 1
     fi
   else
-    echo "==> Mainline tree present — updating..."
+    echo "==> Kernel tree present — updating..."
     git -C "${dest}" fetch --depth 1 origin "${GKI_BRANCH_REF}" || true
     git -C "${dest}" checkout -B "${GKI_BRANCH_REF}" FETCH_HEAD 2>/dev/null || true
   fi
@@ -65,27 +51,24 @@ setup_618() {
     fi
   fi
 
-  echo "==> Overlaying whyred files into mainline tree..."
+  echo "==> Overlaying whyred files into sdm660-mainline tree..."
   mkdir -p "${dest}/arch/arm64/boot/dts/qcom" \
            "${dest}/arch/arm64/configs" \
-           "${dest}/drivers/whyred" \
            "${dest}/include/dt-bindings/whyred"
 
+  # Device tree
   cp -a "${ROOT}/arch/arm64/boot/dts/qcom/"*.dts \
         "${ROOT}/arch/arm64/boot/dts/qcom/"*.dtsi \
         "${dest}/arch/arm64/boot/dts/qcom/" 2>/dev/null || true
+
+  # Configs
   cp -a "${ROOT}/arch/arm64/configs/"* "${dest}/arch/arm64/configs/" 2>/dev/null || true
-  mkdir -p "${dest}/drivers/whyred"
-  cp -a "${ROOT}/drivers/whyred/." "${dest}/drivers/whyred/"
+
+  # DT bindings
   mkdir -p "${dest}/include/dt-bindings/whyred"
   cp -a "${ROOT}/include/dt-bindings/whyred/"* "${dest}/include/dt-bindings/whyred/" 2>/dev/null || true
 
-  if [[ -f "${dest}/drivers/Kconfig" ]] && ! grep -q 'whyred/Kconfig' "${dest}/drivers/Kconfig"; then
-    echo 'source "drivers/whyred/Kconfig"' >> "${dest}/drivers/Kconfig"
-  fi
-  if [[ -f "${dest}/drivers/Makefile" ]] && ! grep -q 'whyred/' "${dest}/drivers/Makefile"; then
-    echo 'obj-y += whyred/' >> "${dest}/drivers/Makefile"
-  fi
+  # Ensure DTB is listed in DTS Makefile
   if [[ -f "${dest}/arch/arm64/boot/dts/qcom/Makefile" ]] && \
      ! grep -q 'sdm636-xiaomi-whyred' "${dest}/arch/arm64/boot/dts/qcom/Makefile"; then
     echo 'dtb-$(CONFIG_ARCH_QCOM) += sdm636-xiaomi-whyred.dtb' \
@@ -93,9 +76,9 @@ setup_618() {
   fi
 
   local ver
-  ver="$(make -C "${dest}" -s kernelversion 2>/dev/null || echo 6.18.x)"
-  echo "==> Kernel version string: ${ver}"
-  echo "==> Linux Mainline 6.18 LTS sources ready: ${dest}"
+  ver="$(make -C "${dest}" -s kernelversion 2>/dev/null || echo unknown)"
+  echo "==> Kernel version: ${ver}"
+  echo "==> sdm660-mainline 7.0.y ready: ${dest}"
 }
 
 # ---------- 4.19 downstream ----------
@@ -104,7 +87,12 @@ setup_419() {
   echo "==> Downstream 4.19 (optional ROM track)"
   if [[ ! -d "${dest}/.git" && ! -f "${dest}/Makefile" ]]; then
     mkdir -p "$(dirname "${dest}")"
-    ci_git_clone "${KERNEL_419_REMOTE}" "${dest}" "${KERNEL_419_BRANCH}" || exit 1
+    if [[ -n "${KERNEL_419_REMOTE}" ]]; then
+      ci_git_clone "${KERNEL_419_REMOTE}" "${dest}" "${KERNEL_419_BRANCH}" || exit 1
+    else
+      echo "ERROR: KERNEL_419_REMOTE not set — cannot clone 4.19 tree"
+      exit 1
+    fi
   fi
   echo "==> 4.19 ready: ${dest}"
 }
@@ -115,9 +103,6 @@ case "${KERNEL_TRACK}" in
     ;;
   4.19|419|downstream)
     setup_419
-    ;;
-  6.18|618|lts|mainline|hybrid)
-    setup_618
     ;;
   *)
     echo "WARNING: unknown KERNEL_TRACK=${KERNEL_TRACK}, defaulting to 7.0"
