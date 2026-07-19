@@ -1,18 +1,15 @@
 name: Build Kernel
 
-# Default: Phoenix-Whyred 6.18 LTS (Linux Mainline)
-# Optional: KERNEL_TRACK=4.19 downstream for ROMs
-
 on:
   workflow_dispatch:
     inputs:
       kernel_track:
         description: "Kernel track"
         required: true
-        default: "6.18"
+        default: "7.0"
         type: choice
         options:
-          - "6.18"
+          - "7.0"
           - "4.19"
       build_mode:
         description: "Build mode"
@@ -31,30 +28,28 @@ on:
         required: false
         default: false
         type: boolean
-  workflow_call:
-    inputs:
-      kernel_track:
-        type: string
-        default: "6.18"
-      build_mode:
-        type: string
-        default: full
-      create_release:
-        type: string
-        default: "true"
   push:
     tags:
       - "v*"
   schedule:
     - cron: "0 3 * * 0"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DEBIAN_FRONTEND: noninteractive
   CONTINUE_ON_ERROR: "1"
+  ARCH: arm64
+  SUBARCH: arm64
+  LLVM: "1"
+  LLVM_IAS: "1"
+  CROSS_COMPILE: aarch64-linux-gnu-
 
 jobs:
   build:
-    name: whyred · ${{ inputs.kernel_track || github.event.inputs.kernel_track || '6.18' }}
+    name: whyred · ${{ inputs.kernel_track || github.event.inputs.kernel_track || '7.0' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions:
@@ -96,14 +91,14 @@ jobs:
       - name: Resolve options
         id: opts
         run: |
-          TRACK="${{ inputs.kernel_track || github.event.inputs.kernel_track || '6.18' }}"
+          TRACK="${{ inputs.kernel_track || github.event.inputs.kernel_track || '7.0' }}"
           MODE="${{ inputs.build_mode || github.event.inputs.build_mode || 'image' }}"
           BRANCH="${{ github.event.inputs.kernel_419_branch || 'stable-release' }}"
           CREL="${{ inputs.create_release || github.event.inputs.create_release || 'false' }}"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             MODE=full
             CREL=true
-            TRACK=6.18
+            TRACK=7.0
           fi
           echo "track=$TRACK" >> "$GITHUB_OUTPUT"
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
@@ -121,14 +116,9 @@ jobs:
           KERNEL_419_BRANCH: ${{ steps.opts.outputs.branch }}
         run: ./scripts/setup.sh
 
-      - name: Import whyred inventory (4.19 only)
+      - name: Apply patches
         if: steps.opts.outputs.track == '4.19'
         run: ./scripts/import-whyred-419.sh || true
-
-      - name: Apply patches
-        env:
-          KERNEL_TRACK: ${{ steps.opts.outputs.track }}
-        run: ./scripts/apply-patches.sh
 
       - name: Build
         env:
@@ -136,8 +126,6 @@ jobs:
           SKIP_MODULES: ${{ steps.opts.outputs.skip_modules }}
           CONTINUE_ON_ERROR: "1"
           JOBS: "4"
-          ARCH: arm64
-          CROSS_COMPILE: aarch64-linux-gnu-
         run: |
           if [[ "${{ steps.opts.outputs.mode }}" == "image" ]]; then
             ./scripts/build.sh image
@@ -145,13 +133,51 @@ jobs:
             ./scripts/build.sh whyred
           fi
 
-      - name: Validate build output
+      - name: Verify config
         if: success()
-        run: ./scripts/validate-build.sh || echo "::warning::Build validation found issues"
+        run: |
+          echo "==> Verifying critical config symbols..."
+          CONF="out/build/.config"
+          if [[ ! -f "$CONF" ]]; then
+            echo "ERROR: .config not found at $CONF"
+            exit 1
+          fi
+          FAIL=0
+          for sym in CONFIG_ARCH_QCOM CONFIG_CMDLINE_DROP_DANGEROUS_ANDROID_OPTIONS \
+                     CONFIG_SERIAL_MSM_GENI_SERIAL CONFIG_MMC_SDHCI_MSM \
+                     CONFIG_USB_DWC3_QCOM CONFIG_DRM_MSM CONFIG_SDM_GCC_660; do
+            if grep -qE "^${sym}=[my]" "$CONF"; then
+              echo "  OK  $sym"
+            else
+              echo "  MISSING  $sym"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+          if [[ $FAIL -gt 0 ]]; then
+            echo "ERROR: $FAIL critical config symbols missing"
+            exit 1
+          fi
+          echo "==> Config verification passed"
 
-      - name: Validate config
+      - name: Verify DTB
         if: success()
-        run: ./scripts/validate-config.sh || echo "::warning::Config validation found issues"
+        run: |
+          echo "==> Verifying DTB build output..."
+          DTB="out/build/arch/arm64/boot/dts/qcom/sdm636-xiaomi-whyred.dtb"
+          if [[ -f "$DTB" ]]; then
+            echo "  OK  sdm636-xiaomi-whyred.dtb ($(stat -c%s "$DTB") bytes)"
+          else
+            echo "  WARNING: DTB not found at $DTB"
+            echo "  Checking for any DTBs in dts/qcom/..."
+            find out/build/arch/arm64/boot/dts/qcom/ -name '*.dtb' 2>/dev/null | head -5 || echo "  No DTBs found"
+          fi
+          IMG="out/build/arch/arm64/boot/Image.gz"
+          if [[ -f "$IMG" ]]; then
+            echo "  OK  Image.gz ($(stat -c%s "$IMG") bytes)"
+          else
+            echo "  WARNING: Image.gz not found"
+            find out/build/arch/arm64/boot/ -name 'Image*' 2>/dev/null | head -5 || echo "  No images found"
+          fi
 
       - name: Pack zip
         if: success()
@@ -164,7 +190,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v7
         with:
-          name: whyred-${{ steps.opts.outputs.track }}-${{ github.run_number }}
+          name: whyred-${{ steps.opts.outputs.track }}-${{ github.sha }}
           path: |
             out/dist/*.zip
             out/dist/Image*
@@ -187,13 +213,12 @@ jobs:
           name: "Phoenix-Whyred ${{ steps.opts.outputs.track }} ${{ github.ref_type == 'tag' && github.ref_name || format('CI run {0}', github.run_number) }}"
           body: |
             ## Phoenix-Whyred Kernel
-            - Track: **${{ steps.opts.outputs.track }}** (6.18 = Linux Mainline LTS)
+            - Track: **${{ steps.opts.outputs.track }}** (sdm660-mainline 7.0.9)
             - Device: whyred (Redmi Note 5 Pro / SDM636)
             - Mode: ${{ steps.opts.outputs.mode }}
             - Commit: `${{ github.sha }}`
 
-            ⚠️ Experimental bring-up. Backup boot before flash.
-            4.19 builds only for **4.19-based ROMs**.
+            Experimental bring-up. Backup boot before flash.
           files: |
             out/dist/*.zip
             out/dist/Image.gz-dtb

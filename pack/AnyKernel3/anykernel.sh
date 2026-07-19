@@ -1,21 +1,18 @@
 ### AnyKernel3 Ramdisk Mod Script
 ## osm0sis @ xda-developers
-## Adapted for Whyred Hybrid 6.18
+## Adapted for Phoenix-Whyred 7.0.9 (sdm660-mainline)
 
 ### AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Whyred Hybrid 6.18 LTS
-do.devicecheck=1
+kernel.string=Phoenix-Whyred 7.0.9
+do.devicecheck=0
 do.modules=0
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=whyred
-device.name2=Whyred
-device.name3=Redmi Note 5
-device.name4=redmi note 5 pro
-device.name5=Redmi Note 5 Pro
+device.name2=Redmi Note 5 Pro
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=

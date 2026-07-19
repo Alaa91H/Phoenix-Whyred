@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate merged kernel configuration for whyred hybrid 6.18 LTS
+# Validate merged kernel configuration for whyred sdm660-mainline 7.0.9
 # Run after build.sh config to verify critical options are set
 set -euo pipefail
 

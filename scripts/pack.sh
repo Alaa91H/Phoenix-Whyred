@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT}"
+
 # shellcheck source=/dev/null
 source "${ROOT}/PROJECT.conf"
 # shellcheck source=/dev/null
@@ -16,15 +18,23 @@ GIT_SHA="${GIT_SHA:0:7}"
 ZIP_NAME="${ZIP_PREFIX}-${PROJECT_VERSION}-${STAMP}-${GIT_SHA}.zip"
 FETCH_ANYKERNEL="${FETCH_ANYKERNEL:-0}"
 
-has_image=0
-for img in Image.gz-dtb Image.gz Image; do
-  [[ -f "${DIST}/${img}" ]] && has_image=1
+# Verify build artifacts exist — hard fail if missing
+FOUND_IMAGE=""
+for img in Image.gz Image Image.gz-dtb; do
+  if [[ -f "${DIST}/${img}" ]]; then
+    FOUND_IMAGE="${img}"
+    break
+  fi
 done
-if [[ $has_image -eq 0 ]]; then
-  echo "ERROR: no Image in ${DIST}. Build first."
+if [[ -z "${FOUND_IMAGE}" ]]; then
+  echo "ERROR: no kernel image found in ${DIST}"
+  echo "  Expected: Image.gz, Image, or Image.gz-dtb"
+  echo "  Run build.sh first."
   exit 1
 fi
+echo "==> Found ${FOUND_IMAGE} ($(stat -c%s "${DIST}/${FOUND_IMAGE}") bytes)"
 
+# Fetch AnyKernel3 if needed
 if [[ "${FETCH_ANYKERNEL}" == "1" ]] || ci_is_github; then
   if [[ ! -f "${AK}/tools/ak3-core.sh" ]]; then
     echo "==> Fetching AnyKernel3..."
@@ -41,26 +51,18 @@ if [[ "${FETCH_ANYKERNEL}" == "1" ]] || ci_is_github; then
 fi
 
 mkdir -p "${AK}"
-# Prefer Image.gz-dtb for 4.19 SDM660, Image.gz for 6.18 GKI
 rm -f "${AK}/Image.gz-dtb" "${AK}/Image.gz" "${AK}/Image" "${AK}/dhtb"
-for img in Image.gz Image Image.gz-dtb; do
-  if [[ -f "${DIST}/${img}" ]]; then
-    cp -a "${DIST}/${img}" "${AK}/"
-    echo "    pack: ${img}"
-    break
-  fi
-done
+cp -a "${DIST}/${FOUND_IMAGE}" "${AK}/"
+echo "    pack: ${FOUND_IMAGE}"
 cp -a "${DIST}/"*.dtb "${AK}/" 2>/dev/null || true
 [[ -f "${DIST}/dtbo.img" ]] && cp -a "${DIST}/dtbo.img" "${AK}/"
 
-# Include build provenance in zip
 [[ -f "${DIST}/build-info.txt" ]] && cp -a "${DIST}/build-info.txt" "${AK}/"
 [[ -f "${DIST}/SHA256SUMS" ]] && cp -a "${DIST}/SHA256SUMS" "${AK}/"
 
 if [[ -d "${ROOT}/${MODULES_OUT}/lib/modules" ]]; then
   MOD_TAR="${ROOT}/${DIST_DIR}/modules-${STAMP}.tar.gz"
   tar -C "${ROOT}/${MODULES_OUT}" -czf "${MOD_TAR}" lib/modules
-  # Include modules in AnyKernel3 zip if any exist
   MOD_COUNT=$(find "${ROOT}/${MODULES_OUT}/lib/modules" -name '*.ko' 2>/dev/null | wc -l | tr -d ' ')
   if [[ ${MOD_COUNT} -gt 0 ]]; then
     echo "    pack: modules (${MOD_COUNT} .ko files)"
@@ -79,20 +81,18 @@ git ${GIT_SHA}
 built $(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
 
-# Ensure anykernel targets whyred
-if [[ ! -f "${AK}/anykernel.sh" ]] || ! grep -q 'whyred' "${AK}/anykernel.sh" 2>/dev/null; then
+# Ensure anykernel targets whyred — preserve custom anykernel.sh across AK3 re-fetches
+if [[ ! -f "${AK}/anykernel.sh" ]] || ! grep -q 'do.devicecheck=0' "${AK}/anykernel.sh" 2>/dev/null; then
   cat > "${AK}/anykernel.sh" <<'EOF'
 ### AnyKernel3 — whyred
 properties() { '
-kernel.string=Whyred Kernel
-do.devicecheck=1
+kernel.string=Phoenix-Whyred 7.0.9
+do.devicecheck=0
 do.modules=0
 do.systemless=1
 do.cleanup=1
 device.name1=whyred
-device.name2=Whyred
-device.name3=Redmi Note 5
-device.name4=Redmi Note 5 Pro
+device.name2=Redmi Note 5 Pro
 '; }
 block=/dev/block/bootdevice/by-name/boot;
 is_slot_device=0;
@@ -110,6 +110,15 @@ rm -f "${OUT_ZIP}"
   cd "${AK}"
   zip -r9 "${OUT_ZIP}" . -x "*.git*" -x "*.DS_Store"
 )
+
+if [[ ! -f "${OUT_ZIP}" ]] || [[ $(stat -c%s "${OUT_ZIP}") -lt 1000 ]]; then
+  echo "ERROR: zip creation failed or zip too small"
+  ls -lh "${OUT_ZIP}" 2>/dev/null || echo "  zip not found"
+  exit 1
+fi
+
 cp -a "${OUT_ZIP}" "${ROOT}/${DIST_DIR}/${ZIP_PREFIX}-latest.zip"
 echo "==> ${OUT_ZIP}"
 ls -lh "${OUT_ZIP}"
+echo "==> Artifacts in ${DIST}:"
+ls -lh "${DIST}/"
